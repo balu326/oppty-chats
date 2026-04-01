@@ -1,9 +1,11 @@
 services:
+  # Backend Web Service
   - type: web
-    name: oppty-chats
+    name: oppty-chats-backend
     env: node
     region: oregon
     plan: free
+    rootDir: ./
     buildCommand: npm install
     startCommand: node backend/server.js
     envVars:
@@ -15,6 +17,19 @@ services:
         sync: false
       - key: PORT
         value: 10000
-    disk:
-      name: node_modules
-      mountPath: /opt/render/project/src/node_modules
+      - key: CORS_ORIGIN
+        value: "*"
+
+  # Frontend Static Site
+  - type: static
+    name: oppty-chats-frontend
+    env: static
+    region: oregon
+    plan: free
+    rootDir: ./frontend
+    buildCommand: npm install && npm run build
+    publishDir: frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+
