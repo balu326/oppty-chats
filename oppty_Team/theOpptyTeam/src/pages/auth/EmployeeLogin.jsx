@@ -1,9 +1,11 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { employeeDB } from "../../data/employees";
 import AppLoader from "../../components/common/AppLoader";
 import companyLogo from "../../assets/opptylogo.png";
 import "./EmployeeLogin.css";
+
+// API Base URL
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const FORGOT_STEPS = {
   EMAIL: "EMAIL",
@@ -36,9 +38,8 @@ export default function EmployeeLogin() {
   });
 
   const foundEmployee = useMemo(() => {
-    return employeeDB.find(
-      (emp) => emp.email.toLowerCase() === forgotEmail.trim().toLowerCase()
-    );
+    // For email validation check only (will be validated on backend)
+    return forgotEmail.trim() ? { email: forgotEmail.trim() } : null;
   }, [forgotEmail]);
 
   const handleLoginChange = (e) => {
@@ -50,36 +51,50 @@ export default function EmployeeLogin() {
     setLoginError("");
   };
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
-
-    const employee = employeeDB.find(
-      (emp) =>
-        emp.email.toLowerCase() === loginForm.email.trim().toLowerCase() &&
-        emp.password === loginForm.password
-    );
-
-    if (!employee) {
-      setLoginError("Invalid email or password.");
-      return;
-    }
-
-    localStorage.setItem(
-      "employeeAuth",
-      JSON.stringify({
-        isAuthenticated: true,
-        employeeId: employee.id,
-        email: employee.email,
-        name: employee.name,
-        role: employee.role,
-      })
-    );
-
+    setLoginError("");
     setIsLoggingIn(true);
 
-    setTimeout(() => {
-  window.location.href = "/chats";
-}, 1800);
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: loginForm.email,
+          password: loginForm.password
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Login failed");
+      }
+
+      // Store auth token and employee info
+      localStorage.setItem(
+        "employeeAuth",
+        JSON.stringify({
+          isAuthenticated: true,
+          token: data.token,
+          employeeId: data.employee.id,
+          email: data.employee.email,
+          name: data.employee.name,
+          role: data.employee.role
+        })
+      );
+
+      setTimeout(() => {
+        window.location.href = "/chats";
+      }, 1800);
+    } catch (error) {
+      console.error("Login error:", error);
+      setLoginError(error.message || "Login failed. Please try again.");
+      setIsLoggingIn(false);
+    }
   };
 
   const openForgotPopup = () => {
@@ -115,57 +130,106 @@ export default function EmployeeLogin() {
     setGeneratedOtp(otp);
   };
 
-  const handleVerifyEmail = () => {
+  const handleVerifyEmail = async () => {
     if (!forgotEmail.trim()) {
       setForgotError("Please enter your email.");
       setForgotSuccessMsg("");
       return;
     }
 
-    if (!foundEmployee) {
-      setForgotError("Email not found in employee records.");
+    try {
+      const response = await fetch(`${API_URL}/auth/forgot-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email: forgotEmail })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to send OTP");
+      }
+
+      setForgotError("");
+      setForgotSuccessMsg(data.message);
+      setForgotStep(FORGOT_STEPS.OTP);
+    } catch (error) {
+      console.error("Verify email error:", error);
+      setForgotError(error.message);
+      setForgotSuccessMsg("");
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!forgotEmail.trim()) {
+      setForgotError("Please enter your email.");
       setForgotSuccessMsg("");
       return;
     }
 
-    generateOtp();
-    setForgotError("");
-    setForgotSuccessMsg("OTP has been sent successfully to your email.");
-    setForgotStep(FORGOT_STEPS.OTP);
-  };
+    try {
+      const response = await fetch(`${API_URL}/auth/forgot-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email: forgotEmail })
+      });
 
-  const handleResendOtp = () => {
-    if (!foundEmployee) {
-      setForgotError("Email not found in employee records.");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to resend OTP");
+      }
+
+      setForgotError("");
+      setForgotSuccessMsg(data.message);
+      setOtpValue("");
+    } catch (error) {
+      console.error("Resend OTP error:", error);
+      setForgotError(error.message);
       setForgotSuccessMsg("");
-      return;
     }
-
-    generateOtp();
-    setForgotError("");
-    setForgotSuccessMsg("A new OTP has been sent to your email.");
-    setOtpValue("");
   };
 
-  const handleVerifyOtp = () => {
+  const handleVerifyOtp = async () => {
     if (!otpValue.trim()) {
       setForgotError("Please enter OTP.");
       setForgotSuccessMsg("");
       return;
     }
 
-    if (otpValue !== generatedOtp) {
-      setForgotError("Invalid OTP. Please try again.");
-      setForgotSuccessMsg("");
-      return;
-    }
+    try {
+      const response = await fetch(`${API_URL}/auth/verify-otp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: forgotEmail,
+          otp: otpValue
+        })
+      });
 
-    setForgotError("");
-    setForgotSuccessMsg("");
-    setForgotStep(FORGOT_STEPS.RESET);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Invalid OTP");
+      }
+
+      setForgotError("");
+      setForgotSuccessMsg("");
+      setForgotStep(FORGOT_STEPS.RESET);
+    } catch (error) {
+      console.error("Verify OTP error:", error);
+      setForgotError(error.message);
+      setForgotSuccessMsg("");
+    }
   };
 
-  const handleResetPassword = () => {
+  const handleResetPassword = async () => {
     if (!resetForm.password || !resetForm.confirmPassword) {
       setForgotError("Please fill all password fields.");
       return;
@@ -181,13 +245,31 @@ export default function EmployeeLogin() {
       return;
     }
 
-    if (foundEmployee) {
-      foundEmployee.password = resetForm.password;
-    }
+    try {
+      const response = await fetch(`${API_URL}/auth/reset-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: forgotEmail,
+          newPassword: resetForm.password
+        })
+      });
 
-    setForgotError("");
-    setForgotSuccessMsg("");
-    setForgotStep(FORGOT_STEPS.SUCCESS);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to reset password");
+      }
+
+      setForgotError("");
+      setForgotSuccessMsg("");
+      setForgotStep(FORGOT_STEPS.SUCCESS);
+    } catch (error) {
+      console.error("Reset password error:", error);
+      setForgotError(error.message);
+    }
   };
 
   return (

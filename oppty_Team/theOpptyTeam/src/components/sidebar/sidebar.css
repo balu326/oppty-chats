@@ -98,6 +98,56 @@
   background: var(--sidebar-border);
 }
 
+/* Admin Navigation Item */
+.admin-nav-item {
+  width: 100%;
+  height: auto;
+  padding: 8px;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-nav-item .sidebar-icon {
+  color: #9C27B0;
+}
+
+.admin-nav-item.active .sidebar-icon {
+  color: #7B1FA2;
+}
+
+.admin-nav-item .sidebar-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #616161;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.admin-nav-item.active .sidebar-label {
+  color: #7B1FA2;
+}
+
+/* Super Admin Navigation Item */
+.super-admin-nav-item .sidebar-icon {
+  color: #7B1FA2;
+}
+
+.super-admin-nav-item.active .sidebar-icon {
+  color: #4A148C;
+}
+
+.super-admin-nav-item .sidebar-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #616161;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.super-admin-nav-item.active .sidebar-label {
+  color: #4A148C;
+}
+
 .sidebar-ai {
   width: 28px;
   height: 28px;

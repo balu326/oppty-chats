@@ -253,7 +253,7 @@
 }
 
 .bubble.mine {
-  background: #ffffff;
+  background: #dcf8c6; /* WhatsApp green for your messages */
   color: var(--text);
   border-top-right-radius: 6px;
 }
@@ -282,6 +282,92 @@
   padding: 10px;
   background: var(--panel);
   border-top: 1px solid var(--border);
+  position: relative;
+}
+
+.composerLeft {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.attachBtn {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #e0e0e0;
+  color: #616161;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.attachBtn:hover {
+  background: #d0d0d0;
+  transform: scale(1.05);
+}
+
+.attachBtn:active {
+  transform: scale(0.95);
+}
+
+.attachIcon {
+  display: block;
+}
+
+.attachMenu {
+  position: absolute;
+  bottom: 60px;
+  left: 0;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(17, 27, 33, 0.15);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 180px;
+  z-index: 100;
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.attachMenuItem {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.attachMenuItem:hover {
+  background: var(--accent-soft);
+}
+
+.attachMenuItem:active {
+  background: #ffe0c7;
 }
 
 .composerInput {
@@ -905,4 +991,122 @@
 .groupMemberSelect:focus {
   border-color: #ff6b00;
   box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.12);
+}
+
+/* Attachment Styles */
+.messageAttachment {
+  margin-bottom: 8px;
+}
+
+.messageAttachment.photo {
+  max-width: 320px;
+}
+
+.attachmentImage {
+  width: 100%;
+  max-height: 400px;
+  object-fit: cover;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.attachmentImage:hover {
+  transform: scale(1.02);
+}
+
+.messageAttachment.video {
+  max-width: 320px;
+}
+
+.attachmentVideo {
+  width: 100%;
+  max-height: 400px;
+  border-radius: 8px;
+  background: #000;
+}
+
+.messageAttachment.link {
+  margin: 8px 0;
+}
+
+.linkPreview {
+  display: inline-block;
+  padding: 10px 14px;
+  background: #f0f0f0;
+  border-radius: 8px;
+  color: #1a0dab;
+  text-decoration: none;
+  word-break: break-all;
+  transition: background 0.2s ease;
+}
+
+.linkPreview:hover {
+  background: #e8e8e8;
+}
+
+.messageAttachment.document {
+  margin: 8px 0;
+}
+
+.documentLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  color: #ff6b00;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.documentLink:hover {
+  background: #fff3ea;
+  border-color: #ff6b00;
+}
+
+.senderName {
+  font-size: 12px;
+  color: #667781;
+  margin-bottom: 4px;
+  margin-left: 4px;
+  font-weight: 600;
+}
+
+/* Link Modal Styles */
+.link-modal-content {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 450px;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+.link-modal-content .modal-body {
+  padding: 1.5rem;
+}
+
+.link-modal-content label {
+  display: block;
+  color: #1a1a1a;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.link-modal-content input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #bdbdbd;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.link-modal-content input:focus {
+  outline: none;
+  border-color: #2196F3;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
 }

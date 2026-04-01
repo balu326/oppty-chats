@@ -59,6 +59,7 @@ export default function Sidebar({ isChatOpen }) {
 
   const authUser = getAuthUser();
   const isAdminUser = authUser?.role === "admin";
+  const isSuperAdminUser = authUser?.role === "superadmin";
 
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -72,6 +73,7 @@ export default function Sidebar({ isChatOpen }) {
 
   const [newContactName, setNewContactName] = useState("");
   const [newContactEmail, setNewContactEmail] = useState("");
+  const [newContactPassword, setNewContactPassword] = useState("");
 
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupAbout, setNewGroupAbout] = useState("");
@@ -99,6 +101,10 @@ export default function Sidebar({ isChatOpen }) {
   const navItems = [
     { id: "chats", to: "/chats", badge: "99+" },
     { id: "groups", to: "/groups", dot: true },
+  ];
+
+  const adminNavItems = [
+    { id: "admin", to: "/admin", label: "Admin Panel" },
   ];
 
   const saveAuthUser = (updatedFields) => {
@@ -221,19 +227,60 @@ export default function Sidebar({ isChatOpen }) {
     setNewGroupAbout("");
   };
 
-  const handleCreateContact = () => {
+  const handleCreateContact = async () => {
     if (!isAdminUser) return;
 
     const name = newContactName.trim();
-    if (!name) return;
+    const email = newContactEmail.trim();
+    const password = newContactPassword.trim();
 
-    addContact({
-      name,
-      contact: newContactEmail,
-    });
+    if (!name || !email || !password) {
+      alert('Please fill in all fields: name, email, and password');
+      return;
+    }
 
-    handleCloseCreatePopup();
-    navigate("/chats");
+    if (password.length < 6) {
+      alert('Password must be at least 6 characters');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/employees`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: name,
+          email: email.toLowerCase(),
+          password: password,
+          role: 'employee'
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Add to contacts list
+        addContact({
+          name,
+          contact: email,
+        });
+        
+        // Reset form and close popup
+        setNewContactName("");
+        setNewContactEmail("");
+        setNewContactPassword("");
+        handleCloseCreatePopup();
+        navigate("/chats");
+        alert(`Employee "${name}" created successfully! They can now login with their email and password.`);
+      } else {
+        alert(data.message || 'Failed to create employee');
+      }
+    } catch (error) {
+      console.error('Create employee error:', error);
+      alert('Failed to create employee. Please try again.');
+    }
   };
 
   const handleCreateGroup = () => {
@@ -309,6 +356,42 @@ export default function Sidebar({ isChatOpen }) {
             <>
               <div className="sidebar-divider" />
 
+              {/* Admin Navigation */}
+              <NavLink
+                to="/admin"
+                className={({ isActive }) => `sidebar-item admin-nav-item ${isActive ? "active" : ""}`}
+                aria-label="Admin Dashboard"
+                title="Admin Dashboard"
+              >
+                <span className="sidebar-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 6c1.4 0 2.8 1.1 2.8 2.5V11c.6 0 1.2.6 1.2 1.2v3.5c0 .7-.6 1.3-1.2 1.3H9.2c-.6 0-1.2-.6-1.2-1.3v-3.5c0-.6.6-1.2 1.2-1.2V9.5C9.2 8.1 10.6 7 12 7zm0 1c-.8 0-1.5.7-1.5 1.5V11h3V9.5c0-.8-.7-1.5-1.5-1.5zM12 13c-.8 0-1.5.7-1.5 1.5v1h3v-1c0-.8-.7-1.5-1.5-1.5z"/>
+                  </svg>
+                </span>
+                <span className="sidebar-label">Admin Panel</span>
+              </NavLink>
+            </>
+          )}
+
+          {isSuperAdminUser && (
+            <>
+              <div className="sidebar-divider" />
+
+              {/* Super Admin Navigation */}
+              <NavLink
+                to="/superadmin"
+                className={({ isActive }) => `sidebar-item super-admin-nav-item ${isActive ? "active" : ""}`}
+                aria-label="Super Admin Dashboard"
+                title="Super Admin Dashboard"
+              >
+                <span className="sidebar-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
+                  </svg>
+                </span>
+                <span className="sidebar-label">Super Admin</span>
+              </NavLink>
+
               <div className="sidebar-create-wrapper">
                 <button
                   ref={createBtnRef}
@@ -356,28 +439,40 @@ export default function Sidebar({ isChatOpen }) {
 
                     {createMode === "contact" && (
                       <>
-                        <div className="create-popup-title">Add New Contact</div>
+                        <div className="create-popup-title">Add New Employee</div>
 
                         <div className="create-form">
                           <label className="profile-input-group">
-                            <span className="profile-input-label">Name</span>
+                            <span className="profile-input-label">Full Name</span>
                             <input
                               type="text"
                               className="profile-input"
                               value={newContactName}
                               onChange={(e) => setNewContactName(e.target.value)}
-                              placeholder="Enter contact name"
+                              placeholder="Enter employee name"
                             />
                           </label>
 
                           <label className="profile-input-group">
-                            <span className="profile-input-label">Email / Contact</span>
+                            <span className="profile-input-label">Email Address</span>
                             <input
-                              type="text"
+                              type="email"
                               className="profile-input"
                               value={newContactEmail}
                               onChange={(e) => setNewContactEmail(e.target.value)}
-                              placeholder="Enter email or phone"
+                              placeholder="Enter email address"
+                            />
+                          </label>
+
+                          <label className="profile-input-group">
+                            <span className="profile-input-label">Password (min 6 characters)</span>
+                            <input
+                              type="password"
+                              className="profile-input"
+                              value={newContactPassword}
+                              onChange={(e) => setNewContactPassword(e.target.value)}
+                              placeholder="Enter password"
+                              minLength={6}
                             />
                           </label>
 
@@ -393,9 +488,9 @@ export default function Sidebar({ isChatOpen }) {
                               type="button"
                               className="popup-btn popup-btn-danger"
                               onClick={handleCreateContact}
-                              disabled={!newContactName.trim()}
+                              disabled={!newContactName.trim() || !newContactEmail.trim() || !newContactPassword.trim()}
                             >
-                              Create
+                              Create Employee
                             </button>
                           </div>
                         </div>

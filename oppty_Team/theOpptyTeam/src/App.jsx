@@ -5,6 +5,8 @@ import ChatsLayout from "./components/chat/ChatsLayout.jsx";
 import EmptyState from "./components/chat/EmptyState.jsx";
 import ChatPage from "./components/chat/ChatPage.jsx";
 import EmployeeLogin from "./pages/auth/EmployeeLogin.jsx";
+import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
+import SuperAdminDashboard from "./pages/admin/SuperAdminDashboard.jsx";
 import "./App.css";
 
 function isAuthenticated() {
@@ -40,6 +42,9 @@ function ProtectedApp() {
             <Route index element={<EmptyState />} />
             <Route path=":chatId" element={<ChatPage />} />
           </Route>
+
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/superadmin" element={<SuperAdminDashboard />} />
 
           <Route path="*" element={<Navigate to="/chats" replace />} />
         </Routes>

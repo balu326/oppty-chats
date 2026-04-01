@@ -6,11 +6,10 @@ import "./index.css";
 import { ChatProvider } from "./context/ChatContext.jsx";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <ChatProvider>
-        <App />
-      </ChatProvider>
-    </BrowserRouter>
-  </React.StrictMode>
+  // ✅ Removed StrictMode - it causes double event firing in development
+  <BrowserRouter>
+    <ChatProvider>
+      <App />
+    </ChatProvider>
+  </BrowserRouter>
 );
