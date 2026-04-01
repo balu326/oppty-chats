@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: oppty-chats
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install
+    startCommand: node backend/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: PORT
+        value: 10000
+    disk:
+      name: node_modules
+      mountPath: /opt/render/project/src/node_modules
