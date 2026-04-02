@@ -26,3 +26,7 @@ dist-ssr
 # Large archive files
 *.zip
 oppty_Team.zip
+
+# Environment files
+.env
+frontend/.env
