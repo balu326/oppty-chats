@@ -28,8 +28,7 @@ services:
     plan: free
     rootDir: ./frontend
     buildCommand: npm install && npm run build
-    publishDir: frontend/dist
+    publishDir: dist
     envVars:
       - key: VITE_API_URL
         sync: false
-
