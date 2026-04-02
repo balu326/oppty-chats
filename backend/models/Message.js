@@ -13,32 +13,29 @@ const messageSchema = new mongoose.Schema({
   },
   text: {
     type: String,
-    required: function() {
-      // Text is required only if there's no attachment
-      return !this.attachment;
-    }
+    required: true
   },
   attachment: {
     type: {
       type: String,
       enum: ['photo', 'video', 'document', 'link'],
-      default: null
+      default: undefined
     },
     url: {
       type: String,
-      default: null
+      default: undefined
     },
     fileName: {
       type: String,
-      default: null
+      default: undefined
     },
     fileSize: {
       type: Number,
-      default: null
+      default: undefined
     },
     mimeType: {
       type: String,
-      default: null
+      default: undefined
     }
   },
   createdAt: {

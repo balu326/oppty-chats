@@ -3,7 +3,30 @@ import React, { createContext, useContext, useEffect, useMemo, useReducer, useSt
 import { getAuthUser } from "../utils/auth.js";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-const STORAGE_KEY = "opty_chat_v1"; // Deprecated - kept for backwards compatibility
+const STORAGE_KEY = "oppty_chat_v1";
+
+// localStorage functions for persistence
+function loadChats() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    console.log('💾 Loaded from localStorage:', parsed.length, 'chats');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.error('Failed to load chats from localStorage:', error);
+    return [];
+  }
+}
+
+function saveChats(chats) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
+    console.log('💾 Saved to localStorage:', chats.length, 'chats');
+  } catch (error) {
+    console.error('Failed to save chats to localStorage:', error);
+  }
+}
 
 function uid() {
   return crypto?.randomUUID?.() ?? `${Date.now()}_${Math.random().toString(16).slice(2)}`;
@@ -43,7 +66,7 @@ async function loadEmployeesFromBackend() {
 }
 
 async function initializeChats() {
-  // Load persisted chats
+  // Load persisted chats from localStorage
   const persisted = loadChats();
   let merged = normalizeAndMerge(persisted);
   
@@ -255,6 +278,9 @@ function reducer(state, action) {
       console.log('✅ Message added to state OPTIMISTICALLY. New count:', updated?.messages?.length || 0);
       console.log('📤 ========== SEND MESSAGE END ==========\n');
       
+      // 💾 SAVE TO LOCALSTORAGE IMMEDIATELY
+      saveChats(next);
+      
       // 🕐 MARK THIS CHAT AS "JUST SENT" - prevents immediate reload
       // Store in a global ref or window property since we can't access refs from context
       window.lastMessageSentTime = Date.now();
@@ -388,13 +414,6 @@ function reducer(state, action) {
         // Ensure employeeId is set for DM chats
         const employeeId = chat.employeeId || (chat.kind === "dm" ? chat.id : null);
         
-        // ✅ CRITICAL FIX: Use ONLY backend messages as source of truth
-        // Don't merge with local messages - this causes duplicates
-        // Backend has all messages, so just use those directly
-        
-        console.log('📊 Replacing local messages with backend messages');
-        console.log('📊 Local had:', chat.messages.length, 'Backend has:', messages.length);
-        
         // Remove any pending/local messages that match backend messages by text+time
         // This prevents duplicates when optimistic updates exist
         const backendMessageTexts = new Set(messages.map(m => 
@@ -421,6 +440,9 @@ function reducer(state, action) {
           isLoadingMessages: false
         };
       });
+      
+      // 💾 SAVE TO LOCALSTORAGE AFTER LOADING
+      saveChats(chats);
       
       console.log('📥 ========== LOAD_MESSAGES END ==========\n');
       

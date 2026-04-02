@@ -12,9 +12,10 @@ services:
       - key: NODE_ENV
         value: production
       - key: MONGO_URI
-        sync: false
+        sync: true
       - key: JWT_SECRET
-        sync: false
+        sync: true
+        generateValue: true
       - key: PORT
         value: 10000
       - key: CORS_ORIGIN
@@ -31,4 +32,4 @@ services:
     publishDir: dist
     envVars:
       - key: VITE_API_URL
-        sync: false
+        sync: true
