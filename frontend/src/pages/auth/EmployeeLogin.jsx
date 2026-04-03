@@ -5,7 +5,7 @@ import companyLogo from "../../assets/opptylogo.png";
 import "./EmployeeLogin.css";
 
 // API Base URL
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
 const FORGOT_STEPS = {
   EMAIL: "EMAIL",
@@ -83,7 +83,8 @@ export default function EmployeeLogin() {
           employeeId: data.employee.id,
           email: data.employee.email,
           name: data.employee.name,
-          role: data.employee.role
+          role: data.employee.role,
+          canCreateGroups: data.employee.canCreateGroups,
         })
       );
 
@@ -92,7 +93,11 @@ export default function EmployeeLogin() {
       }, 1800);
     } catch (error) {
       console.error("Login error:", error);
-      setLoginError(error.message || "Login failed. Please try again.");
+      if (error instanceof TypeError) {
+        setLoginError("Cannot reach the backend. Start the Django server on http://localhost:8000 and try again.");
+      } else {
+        setLoginError(error.message || "Login failed. Please try again.");
+      }
       setIsLoggingIn(false);
     }
   };

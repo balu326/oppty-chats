@@ -1,11 +1,10 @@
 import React from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import Sidebar from "./components/sidebar/Sidebar.jsx";
 import ChatsLayout from "./components/chat/ChatsLayout.jsx";
 import EmptyState from "./components/chat/EmptyState.jsx";
 import ChatPage from "./components/chat/ChatPage.jsx";
 import EmployeeLogin from "./pages/auth/EmployeeLogin.jsx";
-import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import SuperAdminDashboard from "./pages/admin/SuperAdminDashboard.jsx";
 import "./App.css";
 
@@ -22,14 +21,18 @@ function isAuthenticated() {
 }
 
 function ProtectedApp() {
+  const location = useLocation();
+
   if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
   }
 
+  const isWorkspaceRoute = location.pathname.startsWith("/chats") || location.pathname.startsWith("/groups");
+
   return (
     <div className="app">
       <Sidebar />
-      <main className="main-content">
+      <main className={`main-content ${isWorkspaceRoute ? "main-content-workspace" : "main-content-scroll"}`}>
         <Routes>
           <Route path="/" element={<Navigate to="/chats" replace />} />
 
@@ -43,7 +46,7 @@ function ProtectedApp() {
             <Route path=":chatId" element={<ChatPage />} />
           </Route>
 
-          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin" element={<Navigate to="/superadmin" replace />} />
           <Route path="/superadmin" element={<SuperAdminDashboard />} />
 
           <Route path="*" element={<Navigate to="/chats" replace />} />

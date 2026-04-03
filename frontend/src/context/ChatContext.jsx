@@ -2,8 +2,31 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer, useState } from "react";
 import { getAuthUser } from "../utils/auth.js";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 const STORAGE_KEY = "oppty_chat_v1";
+
+function buildDmChatId(userA, userB) {
+  return `dm_${[String(userA), String(userB)].sort().join("_")}`;
+}
+
+function getEntityId(value) {
+  return value?._id || value?.id || value;
+}
+
+function normalizeBackendMessage(message, currentEmployeeId) {
+  const senderId = String(getEntityId(message.sender) || "");
+  const createdAt = message.createdAt || message.created_at || new Date().toISOString();
+
+  return {
+    id: String(message._id || message.id || uid()),
+    chatId: String(message.chatId || message.chat_id || ""),
+    sender: senderId && String(currentEmployeeId) === senderId ? "me" : "other",
+    text: message.text || "",
+    createdAt: new Date(createdAt).getTime(),
+    senderName: message.sender?.name || "Unknown",
+    attachment: message.attachment || null,
+  };
+}
 
 // localStorage functions for persistence
 function loadChats() {
@@ -41,7 +64,7 @@ async function loadEmployeesFromBackend() {
     const authUser = getAuthUser();
     if (!authUser?.token) return [];
 
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
     const response = await fetch(`${API_URL}/auth/employees`, {
       headers: {
         Authorization: `Bearer ${authUser.token}`,
@@ -51,7 +74,7 @@ async function loadEmployeesFromBackend() {
     
     if (data.success && Array.isArray(data.employees)) {
       return data.employees.map((emp) => ({
-        id: emp._id,
+        id: String(emp._id || emp.id),
         kind: "dm",
         name: emp.name,
         avatarUrl: `https://i.pravatar.cc/100?u=${encodeURIComponent(emp.email)}`,
@@ -61,8 +84,9 @@ async function loadEmployeesFromBackend() {
         contact: emp.email,
         blocked: false,
         messages: [],
-        employeeId: emp._id,
-        role: emp.role
+        employeeId: String(emp._id || emp.id),
+        role: emp.role,
+        canCreateGroups: Boolean(emp.canCreateGroups),
       }));
     }
     return [];
@@ -86,10 +110,10 @@ async function loadGroupsFromBackend() {
 
     if (data.success && Array.isArray(data.groups)) {
       return data.groups.map((group) => ({
-        id: group._id,
+        id: String(group._id || group.id),
         kind: "group",
         name: group.name,
-        avatarUrl: `https://i.pravatar.cc/100?u=${encodeURIComponent(`group-${group._id}`)}`,
+        avatarUrl: `https://i.pravatar.cc/100?u=${encodeURIComponent(`group-${group._id || group.id}`)}`,
         isOnline: false,
         lastSeen: "",
         about: group.description || "Official team discussion group.",
@@ -98,13 +122,16 @@ async function loadGroupsFromBackend() {
         isAdmin: true,
         members: Array.isArray(group.members)
           ? group.members.map((member) => ({
-              id: member._id,
+              id: String(member._id || member.id),
               name: member.name,
               email: member.email,
+              role: member.role || "employee",
             }))
           : [],
         messages: [],
         isLoadingMessages: false,
+        canManageGroup: Boolean(group.canManage),
+        adminsOnly: Boolean(group.adminsOnly),
       }));
     }
 
@@ -135,7 +162,7 @@ async function initializeChats() {
   const employeeChats = employees
     .filter((chat) => String(chat.employeeId) !== String(authUser.employeeId))
     .map((chat) => {
-      const conversationId = [authUser.employeeId, chat.employeeId].sort().join("_");
+      const conversationId = buildDmChatId(authUser.employeeId, chat.employeeId);
       const existing = mergedById.get(String(conversationId));
 
       return {
@@ -249,6 +276,10 @@ function normalizeAndMerge(persisted) {
 
   const persistedNormalized = persisted.map((c) => ({
     ...c,
+    id:
+      c.kind === "dm" && typeof c.id === "string" && /^\d+_\d+$/.test(c.id)
+        ? `dm_${c.id}`
+        : c.id,
     kind: c.kind ?? "dm",
     about: c.about ?? "Hey there! I am using Oppty Chats.",
     contact: c.contact ?? "Not available",
@@ -270,7 +301,7 @@ const ChatContext = createContext(null);
 
 function isSystemAdmin() {
   const auth = getAuthUser();
-  return auth?.role === "admin" || auth?.role === "superadmin";
+  return auth?.role === "superadmin";
 }
 
 function reducer(state, action) {
@@ -379,10 +410,7 @@ function reducer(state, action) {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
-            // Add a unique header to help backend detect duplicates
-            'X-Request-ID': msg.id,
-            'X-Message-Text': text.trim(),
-            'X-Sender-ID': authUser.employeeId
+            Authorization: `Bearer ${authUser.token}`,
           },
           body: JSON.stringify({
             chatId: action.chatId,
@@ -408,6 +436,36 @@ function reducer(state, action) {
       return { chats: next };
     }
 
+    case "RECEIVE_MESSAGE": {
+      const incomingMessage = action.message;
+      if (!incomingMessage?.chatId) return state;
+
+      const next = state.chats.map((chat) => {
+        if (String(chat.id) !== String(incomingMessage.chatId)) return chat;
+
+        const alreadyExists = (chat.messages || []).some(
+          (message) => String(message.id) === String(incomingMessage.id)
+        );
+        if (alreadyExists) return chat;
+
+        const mergedMessages = (chat.messages || []).filter((message) => {
+          const sameSender = message.sender === incomingMessage.sender;
+          const sameText = (message.text || "").trim() === (incomingMessage.text || "").trim();
+          const closeInTime = Math.abs((message.createdAt || 0) - (incomingMessage.createdAt || 0)) < 5000;
+          const isOptimistic = String(message.id || "").startsWith("temp_");
+          return !(isOptimistic && sameSender && sameText && closeInTime);
+        });
+
+        return {
+          ...chat,
+          messages: [...mergedMessages, incomingMessage].sort((a, b) => a.createdAt - b.createdAt),
+        };
+      });
+
+      saveChats(next);
+      return { chats: next };
+    }
+
     case "UPDATE_CHAT_NAME": {
       const name = action.name.trim();
       if (!name) return state;
@@ -416,7 +474,7 @@ function reducer(state, action) {
         if (String(chat.id) !== String(action.chatId)) return chat;
 
         if (isSystemAdmin()) return { ...chat, name };
-        if (chat.kind === "group" && !chat.isAdmin) return chat;
+        if (chat.kind === "group" && !chat.canManageGroup) return chat;
 
         return { ...chat, name };
       });
@@ -428,9 +486,15 @@ function reducer(state, action) {
     case "ADD_CONTACT": {
       const name = action.payload.name.trim();
       if (!name) return state;
+      const authUser = getAuthUser();
+      const backendEmployeeId = action.payload.employeeId;
+      const chatId =
+        authUser?.employeeId && backendEmployeeId
+          ? buildDmChatId(authUser.employeeId, backendEmployeeId)
+          : uid();
 
       const newChat = {
-        id: uid(),
+        id: chatId,
         kind: "dm",
         name,
         avatarUrl:
@@ -442,9 +506,12 @@ function reducer(state, action) {
         contact: action.payload.contact?.trim() || "Not available",
         blocked: false,
         messages: [],
+        employeeId: backendEmployeeId || null,
+        role: action.payload.role || "employee",
       };
 
-      const next = [newChat, ...state.chats];
+      const remainingChats = state.chats.filter((chat) => String(chat.id) !== String(newChat.id));
+      const next = [newChat, ...remainingChats];
       saveChats(next);
       return { chats: next };
     }
@@ -454,7 +521,7 @@ function reducer(state, action) {
       if (!name) return state;
 
       const newGroup = {
-        id: uid(),
+        id: action.payload.id || uid(),
         kind: "group",
         name,
         avatarUrl:
@@ -468,9 +535,11 @@ function reducer(state, action) {
         blocked: false,
         members: [],
         messages: [],
+        canManageGroup: true,
       };
 
-      const next = [newGroup, ...state.chats];
+      const remainingChats = state.chats.filter((chat) => String(chat.id) !== String(newGroup.id));
+      const next = [newGroup, ...remainingChats];
       saveChats(next);
       return { chats: next };
     }
@@ -546,8 +615,6 @@ function reducer(state, action) {
     }
 
     case "ADD_GROUP_MEMBER": {
-      if (!isSystemAdmin()) return state;
-
       const next = state.chats.map((chat) => {
         if (String(chat.id) !== String(action.chatId) || chat.kind !== "group") return chat;
 
@@ -567,8 +634,6 @@ function reducer(state, action) {
     }
 
     case "REMOVE_GROUP_MEMBER": {
-      if (!isSystemAdmin()) return state;
-
       const next = state.chats.map((chat) => {
         if (String(chat.id) !== String(action.chatId) || chat.kind !== "group") return chat;
 
@@ -666,7 +731,6 @@ export function ChatProvider({ children }) {
           method: "PUT",
           headers: {
             Authorization: `Bearer ${authUser.token}`,
-            "employee-id": authUser.employeeId,
           },
         });
         const data = await response.json();
@@ -684,7 +748,6 @@ export function ChatProvider({ children }) {
           method: "DELETE",
           headers: {
             Authorization: `Bearer ${authUser.token}`,
-            "employee-id": authUser.employeeId,
           },
         });
         const data = await response.json();
@@ -695,6 +758,11 @@ export function ChatProvider({ children }) {
         dispatch({ type: "REMOVE_GROUP_MEMBER", chatId, memberId });
       },
       loadMessages: (chatId, messages) => dispatch({ type: "LOAD_MESSAGES", payload: { chatId, messages } }),
+      receiveMessage: (message) =>
+        dispatch({
+          type: "RECEIVE_MESSAGE",
+          message: normalizeBackendMessage(message, getAuthUser()?.employeeId),
+        }),
       resetChats: () => dispatch({ type: "RESET" }),
       isAdmin: isSystemAdmin(),
     }),

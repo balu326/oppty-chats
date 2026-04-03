@@ -7,26 +7,17 @@ function formatTime(ts) {
 export default function MessageBubble({ message }) {
   const mine = message.sender === "me";
 
-  console.log('💬 MessageBubble RENDER:', { 
-    sender: message.sender, 
-    isMine: mine,
-    text: message.text?.substring(0, 30),
-    hasAttachment: !!message.attachment,
-    attachmentType: message.attachment?.type,
-    className: `bubbleRow ${mine ? "mine" : "theirs"}`
-  });
-
   const renderAttachment = () => {
     if (!message.attachment) return null;
 
     const { type, url, fileName } = message.attachment;
-    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    const assetBaseUrl = (import.meta.env.VITE_API_URL || "http://localhost:8000/api").replace(/\/api$/, "");
 
     switch (type) {
       case 'photo':
         return (
           <div className="messageAttachment photo">
-            <img src={`${apiUrl}${url}`} alt={fileName} className="attachmentImage" />
+            <img src={`${assetBaseUrl}${url}`} alt={fileName} className="attachmentImage" />
           </div>
         );
       
@@ -34,7 +25,7 @@ export default function MessageBubble({ message }) {
         return (
           <div className="messageAttachment video">
             <video controls className="attachmentVideo">
-              <source src={`${apiUrl}${url}`} />
+              <source src={`${assetBaseUrl}${url}`} />
               Your browser does not support the video tag.
             </video>
           </div>
@@ -44,7 +35,8 @@ export default function MessageBubble({ message }) {
         return (
           <div className="messageAttachment link">
             <a href={url} target="_blank" rel="noopener noreferrer" className="linkPreview">
-              🔗 {url}
+              <span>🔗</span>
+              <span>{url}</span>
             </a>
           </div>
         );
@@ -53,8 +45,9 @@ export default function MessageBubble({ message }) {
       default:
         return (
           <div className="messageAttachment document">
-            <a href={`${apiUrl}${url}`} download className="documentLink">
-              📄 {fileName}
+            <a href={`${assetBaseUrl}${url}`} download className="documentLink">
+              <span>📄</span>
+              <span>{fileName}</span>
             </a>
           </div>
         );

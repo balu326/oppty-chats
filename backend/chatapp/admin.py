@@ -19,6 +19,6 @@ class ChatGroupAdmin(admin.ModelAdmin):
 
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
-    list_display = ("chat_id", "sender", "created_at")
-    search_fields = ("chat_id", "sender__name", "text")
+    list_display = ("chat_id", "sender", "receiver", "text", "created_at")
+    search_fields = ("chat_id", "sender__name", "receiver__name", "text")
     list_filter = ("attachment_type",)

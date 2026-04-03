@@ -3,6 +3,7 @@ import secrets
 
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
+from django.db import models
 from django.utils import timezone
 from rest_framework import permissions, status
 from rest_framework.response import Response
@@ -10,13 +11,55 @@ from rest_framework.views import APIView
 
 from .authentication import SessionTokenAuthentication
 from .models import ChatGroup, Employee, Message
-from .permissions import IsAdminOrSuperAdmin, IsSuperAdmin
+from .permissions import IsAdminOrSuperAdmin, IsSuperAdmin, IsSuperAdminOrReadOnly
 from .serializers import EmployeeLoginSerializer, EmployeeSerializer, GroupSerializer, MessageSerializer
 from .services import broadcast_message
 
 
 def _conversation_id(user_a, user_b):
-    return "_".join(sorted([str(user_a), str(user_b)]))
+    return f"dm_{'_'.join(sorted([str(user_a), str(user_b)]))}"
+
+
+def _can_create_group(user):
+    if not user or not getattr(user, "is_authenticated", False):
+        return False
+    return user.role == Employee.ROLE_SUPERADMIN
+
+
+def _can_manage_group(user, group):
+    if not user or not getattr(user, "is_authenticated", False):
+        return False
+    return user.role == Employee.ROLE_SUPERADMIN
+
+
+def _as_bool(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+    return bool(value)
+
+
+def _receiver_from_chat_id(chat_id, sender_id):
+    normalized_chat_id = str(chat_id or "")
+    if normalized_chat_id.startswith("dm_"):
+        normalized_chat_id = normalized_chat_id[3:]
+
+    if not normalized_chat_id or "_" not in normalized_chat_id:
+        return None
+
+    participants = [part for part in normalized_chat_id.split("_") if part]
+    if len(participants) != 2:
+        return None
+
+    receiver_id = next((participant for participant in participants if str(participant) != str(sender_id)), None)
+    if receiver_id is None:
+        return None
+
+    try:
+        return Employee.objects.get(pk=receiver_id)
+    except Employee.DoesNotExist:
+        return None
 
 
 class HealthView(APIView):
@@ -137,7 +180,7 @@ class EmployeesView(APIView):
 
     def get_permissions(self):
         if self.request.method == "POST":
-            return [IsAdminOrSuperAdmin()]
+            return [IsSuperAdmin()]
         return [permissions.IsAuthenticated()]
 
     def get(self, request):
@@ -149,6 +192,7 @@ class EmployeesView(APIView):
         email = (request.data.get("email") or "").strip().lower()
         password = request.data.get("password") or ""
         role = request.data.get("role") or Employee.ROLE_EMPLOYEE
+        can_create_groups = _as_bool(request.data.get("canCreateGroups", False))
 
         if not name or not email or not password:
             return Response({"message": "Name, email, and password are required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -159,7 +203,12 @@ class EmployeesView(APIView):
         if role not in {Employee.ROLE_EMPLOYEE, Employee.ROLE_ADMIN, Employee.ROLE_SUPERADMIN}:
             return Response({"message": "Invalid role"}, status=status.HTTP_400_BAD_REQUEST)
 
-        employee = Employee(email=email, name=name, role=role)
+        employee = Employee(
+            email=email,
+            name=name,
+            role=role,
+            can_create_groups=can_create_groups or role in {Employee.ROLE_ADMIN, Employee.ROLE_SUPERADMIN},
+        )
         employee.set_password(password)
         employee.save()
         return Response(
@@ -167,6 +216,34 @@ class EmployeesView(APIView):
                 "success": True,
                 "message": "Employee created successfully",
                 "employee": EmployeeLoginSerializer(employee).data,
+            }
+        )
+
+
+class EmployeePermissionView(APIView):
+    authentication_classes = [SessionTokenAuthentication]
+    permission_classes = [IsSuperAdmin]
+
+    def patch(self, request, employee_id):
+        try:
+            employee = Employee.objects.get(pk=employee_id)
+        except Employee.DoesNotExist:
+            return Response({"message": "Employee not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if employee.role == Employee.ROLE_SUPERADMIN and request.user.role != Employee.ROLE_SUPERADMIN:
+            return Response({"message": "Only super admins can update another super admin"}, status=status.HTTP_403_FORBIDDEN)
+
+        can_create_groups = request.data.get("canCreateGroups")
+        if can_create_groups is None:
+            return Response({"message": "No permission changes provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        employee.can_create_groups = _as_bool(can_create_groups)
+        employee.save(update_fields=["can_create_groups"])
+        return Response(
+            {
+                "success": True,
+                "message": "Employee permissions updated successfully",
+                "employee": EmployeeSerializer(employee).data,
             }
         )
 
@@ -182,37 +259,51 @@ class AllMessagesView(APIView):
 
 class GroupListView(APIView):
     authentication_classes = [SessionTokenAuthentication]
-
-    def get_permissions(self):
-        if self.request.method == "POST":
-            return [IsAdminOrSuperAdmin()]
-        return [permissions.AllowAny()]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        groups = ChatGroup.objects.prefetch_related("members").select_related("created_by").all()
-        return Response({"success": True, "groups": GroupSerializer(groups, many=True).data})
+        groups = ChatGroup.objects.prefetch_related("members").select_related("created_by")
+        if request.user.role in {Employee.ROLE_ADMIN, Employee.ROLE_SUPERADMIN}:
+            queryset = groups.all()
+        else:
+            queryset = groups.filter(models.Q(members=request.user) | models.Q(created_by=request.user)).distinct()
+        return Response({"success": True, "groups": GroupSerializer(queryset, many=True, context={"request": request}).data})
 
     def post(self, request):
+        if not _can_create_group(request.user):
+            return Response({"message": "Only super admins can create groups"}, status=status.HTTP_403_FORBIDDEN)
+
         name = (request.data.get("name") or "").strip()
         description = (request.data.get("description") or "").strip()
+        admins_only = _as_bool(request.data.get("adminsOnly", False))
         if not name:
             return Response({"message": "Group name is required"}, status=status.HTTP_400_BAD_REQUEST)
         if ChatGroup.objects.filter(name=name).exists():
             return Response({"message": "Group with this name already exists"}, status=status.HTTP_400_BAD_REQUEST)
 
-        group = ChatGroup.objects.create(name=name, description=description, created_by=request.user)
-        return Response({"success": True, "message": "Group created successfully", "group": GroupSerializer(group).data})
+        group = ChatGroup.objects.create(name=name, description=description, created_by=request.user, admins_only=admins_only)
+        group.members.add(request.user)
+        return Response(
+            {
+                "success": True,
+                "message": "Group created successfully",
+                "group": GroupSerializer(group, context={"request": request}).data,
+            }
+        )
 
 
 class GroupDetailView(APIView):
     authentication_classes = [SessionTokenAuthentication]
-    permission_classes = [IsAdminOrSuperAdmin]
+    permission_classes = [permissions.IsAuthenticated]
 
     def put(self, request, group_id):
         try:
             group = ChatGroup.objects.get(pk=group_id)
         except ChatGroup.DoesNotExist:
             return Response({"message": "Group not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if not _can_manage_group(request.user, group):
+            return Response({"message": "You do not have permission to update this group"}, status=status.HTTP_403_FORBIDDEN)
 
         name = request.data.get("name")
         description = request.data.get("description")
@@ -226,13 +317,22 @@ class GroupDetailView(APIView):
         if description is not None:
             group.description = description.strip()
         group.save()
-        return Response({"success": True, "message": "Group updated successfully", "group": GroupSerializer(group).data})
+        return Response(
+            {
+                "success": True,
+                "message": "Group updated successfully",
+                "group": GroupSerializer(group, context={"request": request}).data,
+            }
+        )
 
     def delete(self, request, group_id):
         try:
             group = ChatGroup.objects.get(pk=group_id)
         except ChatGroup.DoesNotExist:
             return Response({"message": "Group not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if not _can_manage_group(request.user, group):
+            return Response({"message": "You do not have permission to delete this group"}, status=status.HTTP_403_FORBIDDEN)
 
         Employee.objects.filter(group=group).update(group=None)
         group.members.clear()
@@ -242,7 +342,7 @@ class GroupDetailView(APIView):
 
 class GroupMemberView(APIView):
     authentication_classes = [SessionTokenAuthentication]
-    permission_classes = [IsAdminOrSuperAdmin]
+    permission_classes = [permissions.IsAuthenticated]
 
     def put(self, request, group_id, employee_id):
         try:
@@ -251,10 +351,19 @@ class GroupMemberView(APIView):
         except (ChatGroup.DoesNotExist, Employee.DoesNotExist):
             return Response({"message": "Group or employee not found"}, status=status.HTTP_404_NOT_FOUND)
 
+        if not _can_manage_group(request.user, group):
+            return Response({"message": "You do not have permission to update this group"}, status=status.HTTP_403_FORBIDDEN)
+
         group.members.add(employee)
         employee.group = group
         employee.save(update_fields=["group"])
-        return Response({"success": True, "message": "Employee added to group successfully", "group": GroupSerializer(group).data})
+        return Response(
+            {
+                "success": True,
+                "message": "Employee added to group successfully",
+                "group": GroupSerializer(group, context={"request": request}).data,
+            }
+        )
 
     def delete(self, request, group_id, employee_id):
         try:
@@ -263,11 +372,35 @@ class GroupMemberView(APIView):
         except (ChatGroup.DoesNotExist, Employee.DoesNotExist):
             return Response({"message": "Group or employee not found"}, status=status.HTTP_404_NOT_FOUND)
 
+        if not _can_manage_group(request.user, group):
+            return Response({"message": "You do not have permission to update this group"}, status=status.HTTP_403_FORBIDDEN)
+
         group.members.remove(employee)
         if employee.group_id == group.id:
             employee.group = None
             employee.save(update_fields=["group"])
         return Response({"success": True, "message": "Employee removed from group successfully"})
+
+
+class GroupAdminsOnlyView(APIView):
+    """Toggle the admins_only flag on a group — superadmin only."""
+    authentication_classes = [SessionTokenAuthentication]
+    permission_classes = [IsSuperAdmin]
+
+    def patch(self, request, group_id):
+        try:
+            group = ChatGroup.objects.get(pk=group_id)
+        except ChatGroup.DoesNotExist:
+            return Response({"message": "Group not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        admins_only = _as_bool(request.data.get("adminsOnly", group.admins_only))
+        group.admins_only = admins_only
+        group.save(update_fields=["admins_only"])
+        return Response({
+            "success": True,
+            "message": f"Group messaging restricted to admins: {admins_only}",
+            "group": GroupSerializer(group, context={"request": request}).data,
+        })
 
 
 class MessageListView(APIView):
@@ -302,7 +435,16 @@ class MessageDetailView(APIView):
         if duplicate:
             return Response({"success": True, "message": MessageSerializer(duplicate).data, "isDuplicate": True})
 
-        message = Message.objects.create(chat_id=chat_id, sender=sender, text=text)
+        # Enforce admins_only group restriction
+        try:
+            group = ChatGroup.objects.get(pk=chat_id)
+            if group.admins_only and sender.role not in {Employee.ROLE_ADMIN, Employee.ROLE_SUPERADMIN}:
+                return Response({"message": "Only admins can send messages in this group"}, status=status.HTTP_403_FORBIDDEN)
+        except (ChatGroup.DoesNotExist, ValueError):
+            pass  # DM or non-existent group — allow
+
+        receiver = _receiver_from_chat_id(chat_id, sender.id)
+        message = Message.objects.create(chat_id=chat_id, sender=sender, receiver=receiver, text=text)
         broadcast_message(message)
         return Response({"success": True, "message": MessageSerializer(message).data, "isNew": True})
 
@@ -340,6 +482,7 @@ class MessageUploadView(APIView):
         message = Message.objects.create(
             chat_id=chat_id,
             sender=sender,
+            receiver=_receiver_from_chat_id(chat_id, sender.id),
             text="",
             attachment_type=attachment_type,
             attachment_url=storage.url(stored_name),
@@ -374,6 +517,7 @@ class MessageLinkView(APIView):
         message = Message.objects.create(
             chat_id=chat_id,
             sender=sender,
+            receiver=_receiver_from_chat_id(chat_id, sender.id),
             text=f"Check out this link: {url}",
             attachment_type=Message.ATTACHMENT_LINK,
             attachment_url=url,

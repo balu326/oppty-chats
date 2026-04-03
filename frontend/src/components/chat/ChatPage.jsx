@@ -5,7 +5,23 @@ import { useMediaQuery } from "../../hooks/useMediaQuery.js";
 import { getAuthUser } from "../../utils/auth.js";
 import MessageBubble from "./MessageBubble.jsx";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+const QUICK_EMOJIS = ["😀", "😂", "😍", "🔥", "👍", "🎉", "🙏", "💡", "🚀", "❤️"];
+
+function normalizeMessage(msg, myEmployeeId) {
+  const senderId = msg.sender?._id?.toString() || msg.sender?.id?.toString() || msg.sender?.toString() || "";
+  const createdAt = msg.createdAt || msg.created_at || new Date().toISOString();
+
+  return {
+    id: msg._id || msg.id,
+    chatId: msg.chatId || msg.chat_id,
+    sender: String(senderId) === String(myEmployeeId) ? "me" : "other",
+    text: msg.text || "",
+    createdAt: new Date(createdAt).getTime(),
+    senderName: msg.sender?.name || "Unknown",
+    attachment: msg.attachment || null,
+  };
+}
 
 function formatDay(ts) {
   return new Date(ts).toLocaleDateString([], {
@@ -50,6 +66,7 @@ export default function ChatPage() {
     addGroupMember,
     removeGroupMember,
     loadMessages,
+    receiveMessage,
     isAdmin,
     loading,
     chats,
@@ -69,7 +86,9 @@ export default function ChatPage() {
   const [isSending, setIsSending] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [showEmojiTray, setShowEmojiTray] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
+  const [websocketAvailable, setWebsocketAvailable] = useState(true);
   const fileInputRef = useRef(null);
   const videoInputRef = useRef(null);
   const documentInputRef = useRef(null);
@@ -89,6 +108,13 @@ export default function ChatPage() {
   // NOW get chat after hooks
   const chat = chatId ? getChatById(chatId) : null;
 
+  // Auth/role checks — needed before onSend callback
+  const authUserForChat = getAuthUser();
+  const isSuperAdmin = authUserForChat?.role === "superadmin";
+  const isAdminRole = authUserForChat?.role === "admin" || authUserForChat?.role === "superadmin";
+  const groupAdminsOnly = chat?.kind === "group" && chat?.adminsOnly === true;
+  const blockedByAdminsOnly = groupAdminsOnly && !isAdminRole;
+
   console.log('🎯 Chat selected:', { 
     chatId, 
     chatExists: !!chat, 
@@ -107,7 +133,7 @@ export default function ChatPage() {
     }
     
     const v = text.trim();
-    if (!v || !chat || chat.blocked || isSending) return;
+    if (!v || !chat || chat.blocked || blockedByAdminsOnly || isSending) return;
     
     // Prevent sending same message within 3 seconds (increased from 2)
     const timeSinceLastMessage = Date.now() - lastMessageSentRef.current.timestamp;
@@ -142,8 +168,8 @@ export default function ChatPage() {
   }, [text, chat, chat?.id, chat?.blocked, isSending, sendMessage, setText]);
 
   const canSend = text.trim().length > 0;
-  const canEditName =
-    isAdmin || chat?.kind !== "group" || chat?.isAdmin === true;
+  const canManageGroup = isSuperAdmin;
+  const canEditName = isSuperAdmin || chat?.kind !== "group";
 
   const availableEmployees = useMemo(() => {
     if (!chat || chat.kind !== "group") return [];
@@ -238,20 +264,7 @@ export default function ChatPage() {
         console.log('🟢 Loaded messages from backend:', data.messages?.length || 0);
         
         if (data.success && Array.isArray(data.messages)) {
-          // Convert backend messages to frontend format
-          const backendMessages = data.messages.map(msg => {
-            const senderId = msg.sender?._id?.toString() || msg.sender?.toString() || msg.sender;
-            const isMyMessage = String(senderId) === String(myEmployeeId);
-            
-            return {
-              id: msg._id,
-              chatId: msg.chatId,
-              sender: isMyMessage ? 'me' : 'other',
-              text: msg.text,
-              createdAt: new Date(msg.createdAt).getTime(),
-              senderName: msg.sender?.name || 'Unknown'
-            };
-          });
+          const backendMessages = data.messages.map((msg) => normalizeMessage(msg, myEmployeeId));
           
           console.log('💾 Processed messages:', backendMessages.length);
           
@@ -280,6 +293,41 @@ export default function ChatPage() {
       console.log('🧹 Cleanup: cancelled previous message load');
     };
   }, [chatId, chat?.kind, chat?.messages?.length]);
+
+  useEffect(() => {
+    const authUser = getAuthUser();
+    if (!chat?.id || !authUser?.token) return undefined;
+
+    const socketBaseUrl = API_URL.replace(/\/api$/, "").replace(/^http/, "ws");
+    const socket = new WebSocket(
+      `${socketBaseUrl}/ws/chat/${encodeURIComponent(chat.id)}/?token=${encodeURIComponent(authUser.token)}`
+    );
+    let opened = false;
+
+    socket.onopen = () => {
+      opened = true;
+      setWebsocketAvailable(true);
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        receiveMessage(payload);
+      } catch (error) {
+        console.error("WebSocket message parse error:", error);
+      }
+    };
+
+    socket.onerror = (error) => {
+      if (!opened) {
+        setWebsocketAvailable(false);
+      }
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, [chat?.id, receiveMessage]);
 
   useEffect(() => {
     if (searchOpen) searchInputRef.current?.focus();
@@ -480,7 +528,7 @@ export default function ChatPage() {
   };
 
   const handleDeleteChat = () => {
-    if (!isAdmin) return;
+    if (!isSuperAdmin) return;
     deleteChat(chat.id);
     setShowOptionsMenu(false);
     setShowChatInfo(false);
@@ -488,13 +536,13 @@ export default function ChatPage() {
   };
 
   const handleToggleBlock = () => {
-    if (!isAdmin) return;
+    if (!isSuperAdmin) return;
     toggleBlockChat(chat.id);
     setShowOptionsMenu(false);
   };
 
   const handleAddMember = () => {
-    if (!isAdmin || chat.kind !== "group" || !selectedMemberId) return;
+    if (!canManageGroup || chat.kind !== "group" || !selectedMemberId) return;
     const employee = availableEmployees.find((emp) => String(emp.id) === String(selectedMemberId));
     if (!employee) return;
 
@@ -511,7 +559,7 @@ export default function ChatPage() {
   };
 
   const handleRemoveMember = (memberId) => {
-    if (!isAdmin || chat.kind !== "group") return;
+    if (!canManageGroup || chat.kind !== "group") return;
     removeGroupMember(chat.id, memberId).catch((error) => {
       console.error("Remove member error:", error);
       alert(error.message || "Failed to remove employee from group");
@@ -519,7 +567,13 @@ export default function ChatPage() {
   };
 
   const handleAttachClick = () => {
+    setShowEmojiTray(false);
     setShowAttachMenu(!showAttachMenu);
+  };
+
+  const handleEmojiInsert = (emoji) => {
+    setText((current) => `${current}${emoji}`);
+    setShowEmojiTray(false);
   };
 
   const handleFileSelect = (e) => {
@@ -575,6 +629,7 @@ export default function ChatPage() {
       
       if (data.success) {
         console.log('✅ File uploaded successfully:', data.message);
+        receiveMessage(data.message);
         setShowAttachMenu(false);
       } else {
         console.error('❌ Upload failed:', data.message);
@@ -626,15 +681,7 @@ export default function ChatPage() {
     .then(data => {
       if (data.success) {
         console.log('✅ Link sent successfully:', data.message);
-        // Reload messages to show the new link message
-        loadMessages(chat.id, [...(chat.messages || []), {
-          id: data.message._id,
-          chatId: chat.id,
-          sender: 'me',
-          text: data.message.text,
-          attachment: data.message.attachment,
-          createdAt: new Date(data.message.createdAt).getTime()
-        }]);
+        receiveMessage(data.message);
       }
     })
     .catch(error => {
@@ -713,6 +760,8 @@ export default function ChatPage() {
             <div className="chatHeaderMeta">
               {chat.blocked
                 ? "blocked by admin"
+                : chat.kind === "group" && chat.adminsOnly
+                ? "🔒 admins only · " + (chat.members?.length || 0) + " members"
                 : chat.isOnline
                 ? "online"
                 : chat.lastSeen
@@ -755,7 +804,7 @@ export default function ChatPage() {
                 Scroll to latest
               </button>
 
-              {isAdmin && (
+              {isSuperAdmin && (
                 <>
                   <button type="button" className="chatOptionsItem" onClick={handleToggleBlock}>
                     {chat.blocked ? "Unblock" : "Block"}{" "}
@@ -950,7 +999,7 @@ export default function ChatPage() {
                             <span>{member.email}</span>
                           </div>
 
-                          {isAdmin && (
+                          {canManageGroup && (
                             <button
                               type="button"
                               className="groupMemberRemoveBtn"
@@ -968,7 +1017,7 @@ export default function ChatPage() {
                 </div>
               )}
 
-              {isAdmin && chat.kind === "group" && (
+              {canManageGroup && chat.kind === "group" && (
                 <div className="chatInfoCardRow">
                   <span className="chatInfoLabel">Add Employee</span>
 
@@ -998,7 +1047,7 @@ export default function ChatPage() {
                 </div>
               )}
 
-              {isAdmin && (
+              {isSuperAdmin && (
                 <div className="chatInfoAdminActions">
                   <button
                     type="button"
@@ -1036,6 +1085,9 @@ export default function ChatPage() {
       <section className="messages" aria-label="Messages">
         {loadingMessages && (
           <div className="loadingMessages">Loading messages...</div>
+        )}
+        {!websocketAvailable && (
+          <div className="loadingMessages">Live updates unavailable. Using refresh polling.</div>
         )}
         
         {/* Debug: Log chat messages */}
@@ -1129,6 +1181,12 @@ export default function ChatPage() {
         </div>
       )}
 
+      {blockedByAdminsOnly && (
+        <div className="adminsOnlyBanner">
+          🔒 Only admins can send messages in this group
+        </div>
+      )}
+
       <footer className="composer">
         <div className="composerLeft">
           <button
@@ -1207,21 +1265,61 @@ export default function ChatPage() {
           />
         </div>
 
-        <textarea
-          className="composerInput"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={chat.blocked ? "This chat is blocked by admin" : "Type a message"}
-          rows={1}
-          disabled={chat.blocked}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              e.stopPropagation();
-              onSend();
+        <div className="composerCenter">
+          <button
+            type="button"
+            className="emojiBtn"
+            aria-label="Add emoji"
+            title="Add emoji"
+            onClick={() => {
+              setShowAttachMenu(false);
+              setShowEmojiTray((current) => !current);
+            }}
+          >
+            🙂
+          </button>
+
+          {showEmojiTray && (
+            <div className="emojiTray">
+              {QUICK_EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  className="emojiChip"
+                  onClick={() => handleEmojiInsert(emoji)}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <textarea
+            className="composerInput"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder={
+              chat.blocked
+                ? "This chat is blocked by admin"
+                : blockedByAdminsOnly
+                ? "Only admins can send messages in this group"
+                : "Write a message"
             }
-          }}
-        />
+            rows={1}
+            disabled={chat.blocked || blockedByAdminsOnly}
+            onFocus={() => {
+              setShowAttachMenu(false);
+              setShowEmojiTray(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                onSend();
+              }
+            }}
+          />
+        </div>
 
         <button
           type="button"
@@ -1233,7 +1331,7 @@ export default function ChatPage() {
           }}
           aria-label="Send"
           title="Send"
-          disabled={!canSend || chat.blocked || isSending}
+          disabled={!canSend || chat.blocked || blockedByAdminsOnly || isSending}
         >
           <svg className="sendIcon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
             <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />

@@ -2,8 +2,10 @@ from django.urls import path
 
 from .views import (
     AllMessagesView,
+    EmployeePermissionView,
     EmployeesView,
     ForgotPasswordView,
+    GroupAdminsOnlyView,
     GroupMemberView,
     GroupDetailView,
     GroupListView,
@@ -24,9 +26,11 @@ urlpatterns = [
     path("auth/verify-otp", VerifyOtpView.as_view()),
     path("auth/reset-password", ResetPasswordView.as_view()),
     path("auth/employees", EmployeesView.as_view()),
+    path("auth/employees/<int:employee_id>/permissions", EmployeePermissionView.as_view()),
     path("auth/all-messages", AllMessagesView.as_view()),
     path("groups", GroupListView.as_view()),
     path("groups/<int:group_id>", GroupDetailView.as_view()),
+    path("groups/<int:group_id>/admins-only", GroupAdminsOnlyView.as_view()),
     path("groups/<int:group_id>/members/<int:employee_id>", GroupMemberView.as_view()),
     path("messages/<str:chat_id>", MessageListView.as_view()),
     path("messages", MessageDetailView.as_view()),

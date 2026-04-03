@@ -17,6 +17,7 @@ class Employee(models.Model):
     password = models.CharField(max_length=128)
     name = models.CharField(max_length=255)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ROLE_EMPLOYEE)
+    can_create_groups = models.BooleanField(default=False)
     group = models.ForeignKey(
         "ChatGroup",
         null=True,
@@ -52,6 +53,9 @@ class Employee(models.Model):
             and self.otp_expires_at > timezone.now()
         )
 
+    def __str__(self):
+        return f"{self.name} ({self.email})"
+
 
 class ChatGroup(models.Model):
     name = models.CharField(max_length=255, unique=True)
@@ -59,9 +63,13 @@ class ChatGroup(models.Model):
     members = models.ManyToManyField(Employee, related_name="member_groups", blank=True)
     created_by = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="created_groups")
     created_at = models.DateTimeField(auto_now_add=True)
+    admins_only = models.BooleanField(default=False, help_text="Only admins can send messages in this group")
 
     class Meta:
         ordering = ["name"]
+
+    def __str__(self):
+        return self.name
 
 
 class Message(models.Model):
@@ -78,6 +86,13 @@ class Message(models.Model):
 
     chat_id = models.CharField(max_length=255, db_index=True)
     sender = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="messages")
+    receiver = models.ForeignKey(
+        Employee,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="received_messages",
+    )
     text = models.TextField(blank=True, default="")
     attachment_type = models.CharField(max_length=20, choices=ATTACHMENT_CHOICES, blank=True, default="")
     attachment_url = models.CharField(max_length=500, blank=True, default="")
@@ -91,3 +106,19 @@ class Message(models.Model):
         indexes = [
             models.Index(fields=["chat_id", "created_at"]),
         ]
+
+    @property
+    def content(self):
+        return self.text
+
+    @property
+    def timestamp(self):
+        return self.created_at
+
+    def __str__(self):
+        chat_label = self.chat_id
+        if chat_label.startswith("dm_"):
+            chat_label = chat_label.replace("dm_", "DM:", 1)
+        if self.receiver:
+            return f"{self.sender.name} -> {self.receiver.name}: {self.text[:40]}"
+        return f"{self.sender.name} -> Group ({chat_label}): {self.text[:40]}"

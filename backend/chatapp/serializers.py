@@ -16,18 +16,26 @@ class EmployeeSerializer(serializers.ModelSerializer):
     _id = serializers.CharField(source="pk", read_only=True)
     createdAt = serializers.DateTimeField(source="created_at", read_only=True)
     group = GroupSummarySerializer(read_only=True)
+    canCreateGroups = serializers.SerializerMethodField()
 
     class Meta:
         model = Employee
-        fields = ["_id", "email", "name", "role", "group", "createdAt"]
+        fields = ["_id", "email", "name", "role", "canCreateGroups", "group", "createdAt"]
+
+    def get_canCreateGroups(self, obj):
+        return obj.role in {Employee.ROLE_ADMIN, Employee.ROLE_SUPERADMIN} or obj.can_create_groups
 
 
 class EmployeeLoginSerializer(serializers.ModelSerializer):
     id = serializers.CharField(source="pk", read_only=True)
+    canCreateGroups = serializers.SerializerMethodField()
 
     class Meta:
         model = Employee
-        fields = ["id", "email", "name", "role"]
+        fields = ["id", "email", "name", "role", "canCreateGroups"]
+
+    def get_canCreateGroups(self, obj):
+        return obj.role in {Employee.ROLE_ADMIN, Employee.ROLE_SUPERADMIN} or obj.can_create_groups
 
 
 class GroupMemberSerializer(serializers.ModelSerializer):
@@ -43,10 +51,19 @@ class GroupSerializer(serializers.ModelSerializer):
     createdAt = serializers.DateTimeField(source="created_at", read_only=True)
     createdBy = GroupMemberSerializer(source="created_by", read_only=True)
     members = GroupMemberSerializer(many=True, read_only=True)
+    canManage = serializers.SerializerMethodField()
+    adminsOnly = serializers.BooleanField(source="admins_only", read_only=True)
 
     class Meta:
         model = ChatGroup
-        fields = ["_id", "name", "description", "createdBy", "members", "createdAt"]
+        fields = ["_id", "name", "description", "createdBy", "members", "createdAt", "canManage", "adminsOnly"]
+
+    def get_canManage(self, obj):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if not user or not getattr(user, "is_authenticated", False):
+            return False
+        return user.role == Employee.ROLE_SUPERADMIN
 
 
 class MessageSenderSerializer(serializers.ModelSerializer):
@@ -61,12 +78,25 @@ class MessageSerializer(serializers.ModelSerializer):
     _id = serializers.CharField(source="pk", read_only=True)
     chatId = serializers.CharField(source="chat_id", read_only=True)
     sender = MessageSenderSerializer(read_only=True)
+    receiver = MessageSenderSerializer(read_only=True)
+    content = serializers.CharField(source="text", read_only=True)
     createdAt = serializers.DateTimeField(source="created_at", read_only=True)
+    timestamp = serializers.DateTimeField(source="created_at", read_only=True)
     attachment = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
-        fields = ["_id", "chatId", "sender", "text", "attachment", "createdAt"]
+        fields = [
+            "_id",
+            "chatId",
+            "sender",
+            "receiver",
+            "text",
+            "content",
+            "attachment",
+            "createdAt",
+            "timestamp",
+        ]
 
     def get_attachment(self, obj):
         if not obj.attachment_type:

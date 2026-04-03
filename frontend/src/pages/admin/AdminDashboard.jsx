@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./AdminDashboard.css";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
 export default function AdminDashboard() {
   const [groups, setGroups] = useState([]);
@@ -14,7 +14,8 @@ export default function AdminDashboard() {
     name: "",
     email: "",
     password: "",
-    role: "employee"
+    role: "employee",
+    canCreateGroups: false,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -34,7 +35,11 @@ export default function AdminDashboard() {
 
   const fetchGroups = async () => {
     try {
-      const response = await fetch(`${API_URL}/groups`);
+      const response = await fetch(`${API_URL}/groups`, {
+        headers: {
+          Authorization: `Bearer ${currentEmployee.token}`,
+        },
+      });
       const data = await response.json();
       console.log('=== GROUPS DATA ===');
       console.log('Raw response:', data);
@@ -53,7 +58,11 @@ export default function AdminDashboard() {
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch(`${API_URL}/auth/employees`);
+      const response = await fetch(`${API_URL}/auth/employees`, {
+        headers: {
+          Authorization: `Bearer ${currentEmployee.token}`,
+        },
+      });
       const data = await response.json();
       console.log('=== EMPLOYEES DATA ===');
       console.log('Raw response:', data);
@@ -84,7 +93,6 @@ export default function AdminDashboard() {
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${currentEmployee.token}`,
-          "employee-id": currentEmployee.employeeId
         },
         body: JSON.stringify({
           name: newGroupName.trim(),
@@ -133,13 +141,13 @@ export default function AdminDashboard() {
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${currentEmployee.token}`,
-          "employee-id": currentEmployee.employeeId
         },
         body: JSON.stringify({
           name: name.trim(),
           email: email.toLowerCase().trim(),
           password: password,
-          role: role
+          role: role,
+          canCreateGroups: newEmployee.canCreateGroups,
         })
       });
 
@@ -147,7 +155,7 @@ export default function AdminDashboard() {
       
       if (data.success) {
         setSuccessMsg("Employee created successfully!");
-        setNewEmployee({ name: "", email: "", password: "", role: "employee" });
+        setNewEmployee({ name: "", email: "", password: "", role: "employee", canCreateGroups: false });
         setShowAddEmployeeModal(false);
         fetchEmployees();
         setTimeout(() => setSuccessMsg(""), 3000);
@@ -157,6 +165,33 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error("Create employee error:", error);
       setError("Failed to create employee");
+    }
+  };
+
+  const handleToggleGroupAccess = async (employee) => {
+    try {
+      const response = await fetch(`${API_URL}/auth/employees/${employee._id}/permissions`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${currentEmployee.token}`,
+        },
+        body: JSON.stringify({
+          canCreateGroups: !employee.canCreateGroups,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setSuccessMsg(`${employee.name} ${data.employee.canCreateGroups ? "can now create groups" : "can no longer create groups"}`);
+        fetchEmployees();
+        setTimeout(() => setSuccessMsg(""), 3000);
+      } else {
+        setError(data.message || "Failed to update employee access");
+      }
+    } catch (toggleError) {
+      console.error("Toggle group access error:", toggleError);
+      setError("Failed to update employee access");
     }
   };
 
@@ -170,7 +205,6 @@ export default function AdminDashboard() {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${currentEmployee.token}`,
-          "employee-id": currentEmployee.employeeId
         }
       });
 
@@ -196,7 +230,6 @@ export default function AdminDashboard() {
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${currentEmployee.token}`,
-          "employee-id": currentEmployee.employeeId
         }
       });
 
@@ -222,7 +255,6 @@ export default function AdminDashboard() {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${currentEmployee.token}`,
-          "employee-id": currentEmployee.employeeId
         }
       });
 
@@ -382,10 +414,16 @@ export default function AdminDashboard() {
                     <h4>{emp.name}</h4>
                     <p>{emp.email}</p>
                     <p className="emp-role">{emp.role}</p>
+                    <p className="emp-group">{emp.canCreateGroups ? "Can create groups" : "Group creation disabled"}</p>
                     {emp.group && typeof emp.group === 'object' && (
                       <p className="emp-group">Member of: {emp.group.name}</p>
                     )}
                   </div>
+                  {emp.role === "employee" && (
+                    <button className="add-btn" onClick={() => handleToggleGroupAccess(emp)}>
+                      {emp.canCreateGroups ? "Remove Group Access" : "Give Group Access"}
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -498,13 +536,24 @@ export default function AdminDashboard() {
                 </select>
               </div>
 
+              <div className="form-group">
+                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  <input
+                    type="checkbox"
+                    checked={newEmployee.canCreateGroups}
+                    onChange={(e) => setNewEmployee({ ...newEmployee, canCreateGroups: e.target.checked })}
+                  />
+                  Allow this user to create groups
+                </label>
+              </div>
+
               <div className="modal-actions">
                 <button 
                   type="button" 
                   className="cancel-btn"
                   onClick={() => {
                     setShowAddEmployeeModal(false);
-                    setNewEmployee({ name: "", email: "", password: "", role: "employee" });
+                    setNewEmployee({ name: "", email: "", password: "", role: "employee", canCreateGroups: false });
                   }}
                 >
                   Cancel
