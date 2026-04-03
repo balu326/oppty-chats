@@ -122,7 +122,9 @@ export default function SuperAdminDashboard() {
       const response = await fetch(`${API_URL}/auth/employees`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${currentEmployee.token}`,
+          "employee-id": currentEmployee.employeeId
         },
         body: JSON.stringify({
           name: name.trim(),
