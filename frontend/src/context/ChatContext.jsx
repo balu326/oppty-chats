@@ -59,6 +59,15 @@ function uid() {
 // function loadChats() { ... }
 // function saveChats(chats) { ... }
 
+function handleAuthError(response) {
+  if (response.status === 401 || response.status === 403) {
+    localStorage.removeItem("employeeAuth");
+    window.location.href = "/login";
+    return true;
+  }
+  return false;
+}
+
 async function loadEmployeesFromBackend() {
   try {
     const authUser = getAuthUser();
@@ -70,6 +79,7 @@ async function loadEmployeesFromBackend() {
         Authorization: `Bearer ${authUser.token}`,
       },
     });
+    if (handleAuthError(response)) return [];
     const data = await response.json();
     
     if (data.success && Array.isArray(data.employees)) {
@@ -106,6 +116,7 @@ async function loadGroupsFromBackend() {
         Authorization: `Bearer ${authUser.token}`,
       },
     });
+    if (handleAuthError(response)) return [];
     const data = await response.json();
 
     if (data.success && Array.isArray(data.groups)) {
