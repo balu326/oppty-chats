@@ -1,18 +1,16 @@
 services:
   - type: web
     name: oppty-chats-backend
-    env: node
+    env: python
     region: oregon
     plan: free
     rootDir: ./backend
-    buildCommand: npm install
-    startCommand: npm start
+    buildCommand: pip install -r requirements.txt && python manage.py migrate && python manage.py seed_demo
+    startCommand: daphne -b 0.0.0.0 -p $PORT config.asgi:application
     envVars:
-      - key: NODE_ENV
-        value: production
-      - key: MONGODB_URI
-        sync: true
-      - key: JWT_SECRET
+      - key: SECRET_KEY
         generateValue: true
       - key: FRONTEND_URL
         sync: true
+      - key: DEBUG
+        value: false

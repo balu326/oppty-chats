@@ -1,0 +1,36 @@
+from django.urls import path
+
+from .views import (
+    AllMessagesView,
+    EmployeesView,
+    ForgotPasswordView,
+    GroupMemberView,
+    GroupDetailView,
+    GroupListView,
+    HealthView,
+    LoginView,
+    MessageDetailView,
+    MessageLinkView,
+    MessageListView,
+    MessageUploadView,
+    ResetPasswordView,
+    VerifyOtpView,
+)
+
+
+urlpatterns = [
+    path("auth/login", LoginView.as_view()),
+    path("auth/forgot-password", ForgotPasswordView.as_view()),
+    path("auth/verify-otp", VerifyOtpView.as_view()),
+    path("auth/reset-password", ResetPasswordView.as_view()),
+    path("auth/employees", EmployeesView.as_view()),
+    path("auth/all-messages", AllMessagesView.as_view()),
+    path("groups", GroupListView.as_view()),
+    path("groups/<int:group_id>", GroupDetailView.as_view()),
+    path("groups/<int:group_id>/members/<int:employee_id>", GroupMemberView.as_view()),
+    path("messages/<str:chat_id>", MessageListView.as_view()),
+    path("messages", MessageDetailView.as_view()),
+    path("messages/upload", MessageUploadView.as_view()),
+    path("messages/link", MessageLinkView.as_view()),
+    path("health", HealthView.as_view()),
+]
