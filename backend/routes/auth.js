@@ -2,8 +2,17 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import Employee from '../models/Employee.js';
 import Message from '../models/Message.js';
+import authMiddleware from '../middleware/auth.js';
 
 const router = express.Router();
+
+const requireRole = (...roles) => (req, res, next) => {
+  if (!req.employee || !roles.includes(req.employee.role)) {
+    return res.status(403).json({ message: 'Access denied' });
+  }
+
+  next();
+};
 
 // Generate JWT Token
 const generateToken = (employee) => {
@@ -171,7 +180,7 @@ router.post('/reset-password', async (req, res) => {
 });
 
 // GET /api/auth/employees - Get all employees (for admin)
-router.get('/employees', async (req, res) => {
+router.get('/employees', authMiddleware, async (req, res) => {
   try {
     const employees = await Employee.find()
       .select('-password -otp')
@@ -188,7 +197,7 @@ router.get('/employees', async (req, res) => {
 });
 
 // POST /api/auth/employees - Create new employee (Admin/Superadmin only)
-router.post('/employees', async (req, res) => {
+router.post('/employees', authMiddleware, requireRole('admin', 'superadmin'), async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
@@ -235,7 +244,7 @@ router.post('/employees', async (req, res) => {
 });
 
 // GET /api/auth/all-messages - Get all messages (Superadmin only)
-router.get('/all-messages', async (req, res) => {
+router.get('/all-messages', authMiddleware, requireRole('superadmin'), async (req, res) => {
   try {
     const messages = await Message.find()
       .populate('sender', 'name email role')

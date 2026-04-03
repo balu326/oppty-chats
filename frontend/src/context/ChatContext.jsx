@@ -38,8 +38,15 @@ function uid() {
 
 async function loadEmployeesFromBackend() {
   try {
+    const authUser = getAuthUser();
+    if (!authUser?.token) return [];
+
     const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-    const response = await fetch(`${API_URL}/auth/employees`);
+    const response = await fetch(`${API_URL}/auth/employees`, {
+      headers: {
+        Authorization: `Bearer ${authUser.token}`,
+      },
+    });
     const data = await response.json();
     
     if (data.success && Array.isArray(data.employees)) {
@@ -65,23 +72,101 @@ async function loadEmployeesFromBackend() {
   }
 }
 
+async function loadGroupsFromBackend() {
+  try {
+    const authUser = getAuthUser();
+    if (!authUser?.token) return [];
+
+    const response = await fetch(`${API_URL}/groups`, {
+      headers: {
+        Authorization: `Bearer ${authUser.token}`,
+      },
+    });
+    const data = await response.json();
+
+    if (data.success && Array.isArray(data.groups)) {
+      return data.groups.map((group) => ({
+        id: group._id,
+        kind: "group",
+        name: group.name,
+        avatarUrl: `https://i.pravatar.cc/100?u=${encodeURIComponent(`group-${group._id}`)}`,
+        isOnline: false,
+        lastSeen: "",
+        about: group.description || "Official team discussion group.",
+        contact: group.name,
+        blocked: false,
+        isAdmin: true,
+        members: Array.isArray(group.members)
+          ? group.members.map((member) => ({
+              id: member._id,
+              name: member.name,
+              email: member.email,
+            }))
+          : [],
+        messages: [],
+        isLoadingMessages: false,
+      }));
+    }
+
+    return [];
+  } catch (error) {
+    console.error("Failed to load groups from backend:", error);
+    return [];
+  }
+}
+
 async function initializeChats() {
-  // Load persisted chats from localStorage
   const persisted = loadChats();
-  let merged = normalizeAndMerge(persisted);
-  
-  // Load employees from backend
-  const employees = await loadEmployeesFromBackend();
-  
-  // Merge employees into chats (avoid duplicates)
-  const existingIds = new Set(merged.map(c => c.id));
-  const newEmployees = employees.filter(emp => !existingIds.has(emp.id));
-  
-  // Add new employees to chats
-  const allChats = [...newEmployees, ...merged];
-  
-  saveChats(allChats);
-  return allChats;
+  const merged = normalizeAndMerge(persisted);
+  const authUser = getAuthUser();
+
+  if (!authUser?.employeeId || !authUser?.token) {
+    saveChats(merged);
+    return merged;
+  }
+
+  const [employees, groups] = await Promise.all([
+    loadEmployeesFromBackend(),
+    loadGroupsFromBackend(),
+  ]);
+
+  const mergedById = new Map(merged.map((chat) => [String(chat.id), chat]));
+
+  const employeeChats = employees
+    .filter((chat) => String(chat.employeeId) !== String(authUser.employeeId))
+    .map((chat) => {
+      const conversationId = [authUser.employeeId, chat.employeeId].sort().join("_");
+      const existing = mergedById.get(String(conversationId));
+
+      return {
+        ...existing,
+        ...chat,
+        id: conversationId,
+        messages: existing?.messages || [],
+        isLoadingMessages: existing?.isLoadingMessages || false,
+      };
+    });
+
+  const groupChats = groups.map((chat) => {
+    const existing = mergedById.get(String(chat.id));
+
+    return {
+      ...existing,
+      ...chat,
+      messages: existing?.messages || [],
+      isLoadingMessages: existing?.isLoadingMessages || false,
+    };
+  });
+
+  const serverChats = [...employeeChats, ...groupChats];
+
+  if (serverChats.length === 0) {
+    saveChats(merged);
+    return merged;
+  }
+
+  saveChats(serverChats);
+  return serverChats;
 }
 
 const seed = [
@@ -507,7 +592,6 @@ function reducer(state, action) {
 export function ChatProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, { chats: [] }); // Start with EMPTY data
   const [loading, setLoading] = useState(true);
-  const [backendError, setBackendError] = useState(null);
 
   // Initialize chats with employees from backend on mount
   useEffect(() => {
@@ -525,42 +609,11 @@ export function ChatProvider({ children }) {
         
         console.log('👤 Loading employees for user:', authUser.employeeId);
         
-        // ALWAYS load ALL employees from backend (fresh data)
-        const response = await fetch(`${API_URL}/auth/employees`);
-        const data = await response.json();
-        
-        console.log('✅ Loaded employees:', data.employees?.length || 0);
-        
-        if (data.success && Array.isArray(data.employees)) {
-          // Filter out current user and convert to chat format
-          const employeeChats = data.employees
-            .filter(emp => emp._id !== authUser.employeeId)
-            .map((emp) => {
-              // Create conversation ID by sorting both participant IDs
-              const sortedIds = [authUser.employeeId, emp._id].sort();
-              const convId = `${sortedIds[0]}_${sortedIds[1]}`;
-              
-              return {
-                id: convId,  // Use conversation ID instead of just employee ID
-                kind: "dm",
-                name: emp.name,
-                avatarUrl: `https://i.pravatar.cc/100?u=${encodeURIComponent(emp.email)}`,
-                isOnline: false,
-                lastSeen: "last seen recently",
-                about: "Hey there! I am using Oppty Chats.",
-                contact: emp.email,
-                blocked: false,
-                messages: [],
-                employeeId: emp._id,  // ✅ Still need this for message loading!
-                role: emp.role,
-                isLoadingMessages: false
-              };
-            });
+        const chats = await initializeChats();
 
-          console.log('💬 Setting employee chats:', employeeChats.length);
-          console.log('🔗 Conversation IDs created:', employeeChats.map(c => ({ name: c.name, id: c.id })));
-          dispatch({ type: "INIT", chats: employeeChats });
-          setBackendError(null);
+        if (Array.isArray(chats) && chats.length > 0) {
+          console.log('💬 Setting chats:', chats.length);
+          dispatch({ type: "INIT", chats });
         } else {
           console.warn('Backend returned no employees, using seed data');
           dispatch({ type: "INIT", chats: seed });
@@ -575,37 +628,23 @@ export function ChatProvider({ children }) {
     
     init();
     
-    // Poll for new employees every 10 seconds (but don't reload if already loaded)
+    // Poll periodically so new employees/groups show up without a refresh.
     const pollInterval = setInterval(async () => {
       try {
         const authUser = getAuthUser();
         if (!authUser?.employeeId) return;
-        
-        const response = await fetch(`${API_URL}/auth/employees`);
-        const data = await response.json();
-        
-        if (data.success && Array.isArray(data.employees)) {
-          // Check if employee count changed significantly
-          const newEmployeeCount = data.employees.filter(emp => emp._id !== authUser.employeeId).length;
-          
-          console.log('🔄 Polling: Current employee count:', newEmployeeCount, 'vs state chats:', state.chats.length);
-          
-          // Only reload if count increased by at least 1 (not just different)
-          // AND we're not currently loading
-          if (newEmployeeCount > state.chats.length + 1) {
-            console.log('🆕 Significant new employee(s) detected, reloading...');
-            await init();
-          } else {
-            console.log('⏭️ No significant change, skipping reload');
-          }
+
+        const chats = await initializeChats();
+        if (Array.isArray(chats) && chats.length > 0) {
+          dispatch({ type: "INIT", chats });
         }
       } catch (error) {
         console.error('Polling error:', error);
       }
-    }, 10000); // Check every 10 seconds (increased from 5)
+    }, 30000);
     
     return () => clearInterval(pollInterval);
-  }, [state.chats.length]); // Re-create interval if chat count changes
+  }, []);
 
   const api = useMemo(
     () => ({
@@ -619,10 +658,42 @@ export function ChatProvider({ children }) {
       addGroup: (payload) => dispatch({ type: "ADD_GROUP", payload }),
       deleteChat: (chatId) => dispatch({ type: "DELETE_CHAT", chatId }),
       toggleBlockChat: (chatId) => dispatch({ type: "TOGGLE_BLOCK_CHAT", chatId }),
-      addGroupMember: (chatId, member) =>
-        dispatch({ type: "ADD_GROUP_MEMBER", chatId, member }),
-      removeGroupMember: (chatId, memberId) =>
-        dispatch({ type: "REMOVE_GROUP_MEMBER", chatId, memberId }),
+      addGroupMember: async (chatId, member) => {
+        const authUser = getAuthUser();
+        if (!authUser?.token || !authUser?.employeeId) return;
+
+        const response = await fetch(`${API_URL}/groups/${chatId}/members/${member.id}`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${authUser.token}`,
+            "employee-id": authUser.employeeId,
+          },
+        });
+        const data = await response.json();
+        if (!data.success) {
+          throw new Error(data.message || "Failed to add employee to group");
+        }
+
+        dispatch({ type: "ADD_GROUP_MEMBER", chatId, member });
+      },
+      removeGroupMember: async (chatId, memberId) => {
+        const authUser = getAuthUser();
+        if (!authUser?.token || !authUser?.employeeId) return;
+
+        const response = await fetch(`${API_URL}/groups/${chatId}/members/${memberId}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${authUser.token}`,
+            "employee-id": authUser.employeeId,
+          },
+        });
+        const data = await response.json();
+        if (!data.success) {
+          throw new Error(data.message || "Failed to remove employee from group");
+        }
+
+        dispatch({ type: "REMOVE_GROUP_MEMBER", chatId, memberId });
+      },
       loadMessages: (chatId, messages) => dispatch({ type: "LOAD_MESSAGES", payload: { chatId, messages } }),
       resetChats: () => dispatch({ type: "RESET" }),
       isAdmin: isSystemAdmin(),

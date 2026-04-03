@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom";
 import { useChats } from "../../context/ChatContext.jsx";
 import { useMediaQuery } from "../../hooks/useMediaQuery.js";
-import { employeeDB } from "../../data/employees";
 import { getAuthUser } from "../../utils/auth.js";
 import MessageBubble from "./MessageBubble.jsx";
 
@@ -149,8 +148,15 @@ export default function ChatPage() {
   const availableEmployees = useMemo(() => {
     if (!chat || chat.kind !== "group") return [];
     const memberIds = new Set((chat.members || []).map((m) => String(m.id)));
-    return employeeDB.filter((emp) => !memberIds.has(String(emp.id)));
-  }, [chat]);
+    return chats
+      .filter((candidate) => candidate.kind === "dm" && candidate.employeeId)
+      .map((candidate) => ({
+        id: candidate.employeeId,
+        name: candidate.name,
+        email: candidate.contact || candidate.email || "",
+      }))
+      .filter((emp) => !memberIds.has(String(emp.id)));
+  }, [chat, chats]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -180,8 +186,8 @@ export default function ChatPage() {
       timeSinceLastLoad: Date.now() - lastLoadTimeRef.current
     });
     
-    if (!chatId || !chat?.employeeId) {
-      console.log('⚠️ Skipping message load - no chatId or employeeId', { chatId, hasEmployeeId: !!chat?.employeeId });
+    if (!chatId || !chat) {
+      console.log('⚠️ Skipping message load - no chatId');
       return;
     }
     
@@ -225,7 +231,8 @@ export default function ChatPage() {
         console.log('🔵 Loading messages for chat:', chatId, 'user:', myEmployeeId);
         
         // Fetch messages for this specific user
-        const response = await fetch(`${API_URL}/messages/${chatId}?userId=${myEmployeeId}`);
+        const query = chat.kind === "dm" && myEmployeeId ? `?userId=${myEmployeeId}` : "";
+        const response = await fetch(`${API_URL}/messages/${chatId}${query}`);
         const data = await response.json();
         
         console.log('🟢 Loaded messages from backend:', data.messages?.length || 0);
@@ -272,7 +279,7 @@ export default function ChatPage() {
       clearTimeout(timer);
       console.log('🧹 Cleanup: cancelled previous message load');
     };
-  }, [chatId, chat?.employeeId, chat?.messages?.length]); // Also depend on message count
+  }, [chatId, chat?.kind, chat?.messages?.length]);
 
   useEffect(() => {
     if (searchOpen) searchInputRef.current?.focus();
@@ -488,22 +495,27 @@ export default function ChatPage() {
 
   const handleAddMember = () => {
     if (!isAdmin || chat.kind !== "group" || !selectedMemberId) return;
-
-    const employee = employeeDB.find((emp) => String(emp.id) === String(selectedMemberId));
+    const employee = availableEmployees.find((emp) => String(emp.id) === String(selectedMemberId));
     if (!employee) return;
 
     addGroupMember(chat.id, {
       id: employee.id,
       name: employee.name,
       email: employee.email,
-    });
-
-    setSelectedMemberId("");
+    })
+      .then(() => setSelectedMemberId(""))
+      .catch((error) => {
+        console.error("Add member error:", error);
+        alert(error.message || "Failed to add employee to group");
+      });
   };
 
   const handleRemoveMember = (memberId) => {
     if (!isAdmin || chat.kind !== "group") return;
-    removeGroupMember(chat.id, memberId);
+    removeGroupMember(chat.id, memberId).catch((error) => {
+      console.error("Remove member error:", error);
+      alert(error.message || "Failed to remove employee from group");
+    });
   };
 
   const handleAttachClick = () => {
@@ -592,7 +604,7 @@ export default function ChatPage() {
 
     try {
       new URL(url);
-    } catch (e) {
+    } catch {
       alert('Please enter a valid URL');
       return;
     }

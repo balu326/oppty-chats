@@ -1,35 +1,18 @@
 services:
-  # Backend Web Service
   - type: web
     name: oppty-chats-backend
     env: node
     region: oregon
     plan: free
-    rootDir: ./
+    rootDir: ./backend
     buildCommand: npm install
-    startCommand: node backend/server.js
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
-      - key: MONGO_URI
+      - key: MONGODB_URI
         sync: true
       - key: JWT_SECRET
-        sync: true
         generateValue: true
-      - key: PORT
-        value: 10000
-      - key: CORS_ORIGIN
-        value: "*"
-
-  # Frontend Static Site
-  - type: static
-    name: oppty-chats-frontend
-    env: static
-    region: oregon
-    plan: free
-    rootDir: ./frontend
-    buildCommand: npm install && npm run build
-    publishDir: dist
-    envVars:
-      - key: VITE_API_URL
+      - key: FRONTEND_URL
         sync: true

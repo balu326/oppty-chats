@@ -1,31 +1,17 @@
 import express from 'express';
 import Group from '../models/Group.js';
 import Employee from '../models/Employee.js';
+import authMiddleware from '../middleware/auth.js';
 
 const router = express.Router();
 
 // Middleware to check if user is admin
 const isAdmin = async (req, res, next) => {
   try {
-    // Get token from header
-    const token = req.headers.authorization?.split(' ')[1];
+    const employee = await Employee.findById(req.employee?.id);
     
-    if (!token) {
-      return res.status(401).json({ message: 'No token provided' });
-    }
-
-    // Verify token (you can use JWT verification here if needed)
-    // For now, we'll check from localStorage data sent in headers
-    const employeeId = req.headers['employee-id'];
-    
-    if (!employeeId) {
-      return res.status(401).json({ message: 'Employee ID required' });
-    }
-
-    const employee = await Employee.findById(employeeId);
-    
-    if (!employee || employee.role !== 'admin') {
-      return res.status(403).json({ message: 'Access denied. Admin only.' });
+    if (!employee || !['admin', 'superadmin'].includes(employee.role)) {
+      return res.status(403).json({ message: 'Access denied. Admin or superadmin only.' });
     }
 
     req.employee = employee;
@@ -48,7 +34,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/groups - Create new group (Admin only)
-router.post('/', isAdmin, async (req, res) => {
+router.post('/', authMiddleware, isAdmin, async (req, res) => {
   try {
     const { name, description } = req.body;
 
@@ -81,7 +67,7 @@ router.post('/', isAdmin, async (req, res) => {
 });
 
 // PUT /api/groups/:id - Update group (Admin only)
-router.put('/:id', isAdmin, async (req, res) => {
+router.put('/:id', authMiddleware, isAdmin, async (req, res) => {
   try {
     const { name, description } = req.body;
     const groupId = req.params.id;
@@ -122,7 +108,7 @@ router.put('/:id', isAdmin, async (req, res) => {
 });
 
 // DELETE /api/groups/:id - Delete group (Admin only)
-router.delete('/:id', isAdmin, async (req, res) => {
+router.delete('/:id', authMiddleware, isAdmin, async (req, res) => {
   try {
     const groupId = req.params.id;
 
@@ -151,7 +137,7 @@ router.delete('/:id', isAdmin, async (req, res) => {
 });
 
 // PUT /api/groups/:id/members/:employeeId - Add employee to group (Admin only)
-router.put('/:groupId/members/:employeeId', isAdmin, async (req, res) => {
+router.put('/:groupId/members/:employeeId', authMiddleware, isAdmin, async (req, res) => {
   try {
     const { groupId, employeeId } = req.params;
 
@@ -187,7 +173,7 @@ router.put('/:groupId/members/:employeeId', isAdmin, async (req, res) => {
 });
 
 // DELETE /api/groups/:id/members/:employeeId - Remove employee from group (Admin only)
-router.delete('/:groupId/members/:employeeId', isAdmin, async (req, res) => {
+router.delete('/:groupId/members/:employeeId', authMiddleware, isAdmin, async (req, res) => {
   try {
     const { groupId, employeeId } = req.params;
 
