@@ -17,25 +17,43 @@ class EmployeeSerializer(serializers.ModelSerializer):
     createdAt = serializers.DateTimeField(source="created_at", read_only=True)
     group = GroupSummarySerializer(read_only=True)
     canCreateGroups = serializers.SerializerMethodField()
+    avatarUrl = serializers.SerializerMethodField()
 
     class Meta:
         model = Employee
-        fields = ["_id", "email", "name", "role", "canCreateGroups", "group", "createdAt"]
+        fields = ["_id", "email", "name", "role", "canCreateGroups", "avatarUrl", "group", "createdAt"]
 
     def get_canCreateGroups(self, obj):
         return obj.role in {Employee.ROLE_ADMIN, Employee.ROLE_SUPERADMIN} or obj.can_create_groups
+
+    def get_avatarUrl(self, obj):
+        request = self.context.get("request")
+        if obj.avatar and request:
+            return request.build_absolute_uri(obj.avatar.url)
+        if obj.avatar:
+            return obj.avatar.url
+        return None
 
 
 class EmployeeLoginSerializer(serializers.ModelSerializer):
     id = serializers.CharField(source="pk", read_only=True)
     canCreateGroups = serializers.SerializerMethodField()
+    avatarUrl = serializers.SerializerMethodField()
 
     class Meta:
         model = Employee
-        fields = ["id", "email", "name", "role", "canCreateGroups"]
+        fields = ["id", "email", "name", "role", "canCreateGroups", "avatarUrl"]
 
     def get_canCreateGroups(self, obj):
         return obj.role in {Employee.ROLE_ADMIN, Employee.ROLE_SUPERADMIN} or obj.can_create_groups
+
+    def get_avatarUrl(self, obj):
+        request = self.context.get("request")
+        if obj.avatar and request:
+            return request.build_absolute_uri(obj.avatar.url)
+        if obj.avatar:
+            return obj.avatar.url
+        return None
 
 
 class GroupMemberSerializer(serializers.ModelSerializer):

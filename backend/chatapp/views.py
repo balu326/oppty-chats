@@ -62,6 +62,27 @@ def _receiver_from_chat_id(chat_id, sender_id):
         return None
 
 
+class ProfileView(APIView):
+    authentication_classes = [SessionTokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request):
+        avatar = request.FILES.get("avatar")
+        if not avatar:
+            return Response({"message": "No avatar file provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        employee = request.user
+        if employee.avatar:
+            employee.avatar.delete(save=False)
+        employee.avatar = avatar
+        employee.save(update_fields=["avatar"])
+
+        return Response({
+            "success": True,
+            "avatarUrl": request.build_absolute_uri(employee.avatar.url),
+        })
+
+
 class HealthView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -103,7 +124,7 @@ class LoginView(APIView):
             {
                 "success": True,
                 "token": request.session.session_key,
-                "employee": EmployeeLoginSerializer(employee).data,
+                "employee": EmployeeLoginSerializer(employee, context={"request": request}).data,
             }
         )
 
@@ -185,7 +206,7 @@ class EmployeesView(APIView):
 
     def get(self, request):
         employees = Employee.objects.select_related("group").all()
-        return Response({"success": True, "employees": EmployeeSerializer(employees, many=True).data})
+        return Response({"success": True, "employees": EmployeeSerializer(employees, many=True, context={"request": request}).data})
 
     def post(self, request):
         name = (request.data.get("name") or "").strip()

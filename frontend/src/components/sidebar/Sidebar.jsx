@@ -98,11 +98,12 @@ export default function Sidebar({ isChatOpen }) {
     bio: isSuperAdminUser
       ? "Super Administrator — full workspace control."
       : "Hey there! I am using Oppty Chats.",
-    photo: profileImg,
+    photo: authUser?.avatarUrl || profileImg,
   });
 
   const [draftName, setDraftName] = useState(profile.name);
   const [draftPhoto, setDraftPhoto] = useState(profile.photo);
+  const [draftFile, setDraftFile] = useState(null);
 
   const popupRef = useRef(null);
   const profileBtnRef = useRef(null);
@@ -172,24 +173,35 @@ export default function Sidebar({ isChatOpen }) {
     setIsEditingProfile(false);
     setDraftName(profile.name);
     setDraftPhoto(profile.photo);
+    setDraftFile(null);
   };
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     const trimmedName = draftName.trim();
     if (!trimmedName) return;
 
-    const updatedProfile = {
-      ...profile,
-      name: trimmedName,
-      photo: draftPhoto,
-    };
+    let avatarUrl = profile.photo;
 
+    if (draftFile) {
+      try {
+        const formData = new FormData();
+        formData.append("avatar", draftFile);
+        const res = await fetch(`${API_URL}/auth/profile`, {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${authUser?.token}` },
+          body: formData,
+        });
+        const data = await res.json();
+        if (data.success) avatarUrl = data.avatarUrl;
+      } catch (err) {
+        console.error("Avatar upload failed:", err);
+      }
+    }
+
+    const updatedProfile = { ...profile, name: trimmedName, photo: avatarUrl };
     setProfile(updatedProfile);
-    saveAuthUser({
-      name: trimmedName,
-      photo: draftPhoto,
-    });
-
+    saveAuthUser({ name: trimmedName, avatarUrl });
+    setDraftFile(null);
     setIsEditingProfile(false);
   };
 
@@ -219,6 +231,7 @@ export default function Sidebar({ isChatOpen }) {
   const handlePhotoChange = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    setDraftFile(file);
     const objectUrl = URL.createObjectURL(file);
     setDraftPhoto(objectUrl);
   };

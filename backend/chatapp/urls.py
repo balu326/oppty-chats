@@ -15,6 +15,7 @@ from .views import (
     MessageLinkView,
     MessageListView,
     MessageUploadView,
+    ProfileView,
     ResetPasswordView,
     VerifyOtpView,
 )
@@ -22,6 +23,7 @@ from .views import (
 
 urlpatterns = [
     path("auth/login", LoginView.as_view()),
+    path("auth/profile", ProfileView.as_view()),
     path("auth/forgot-password", ForgotPasswordView.as_view()),
     path("auth/verify-otp", VerifyOtpView.as_view()),
     path("auth/reset-password", ResetPasswordView.as_view()),

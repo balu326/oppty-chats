@@ -87,7 +87,7 @@ async function loadEmployeesFromBackend() {
         id: String(emp._id || emp.id),
         kind: "dm",
         name: emp.name,
-        avatarUrl: `https://i.pravatar.cc/100?u=${encodeURIComponent(emp.email)}`,
+        avatarUrl: emp.avatarUrl || `https://i.pravatar.cc/100?u=${encodeURIComponent(emp.email)}`,
         isOnline: false,
         lastSeen: "last seen recently",
         about: "Hey there! I am using Oppty Chats.",
