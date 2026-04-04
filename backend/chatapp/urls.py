@@ -34,9 +34,9 @@ urlpatterns = [
     path("groups/<int:group_id>", GroupDetailView.as_view()),
     path("groups/<int:group_id>/admins-only", GroupAdminsOnlyView.as_view()),
     path("groups/<int:group_id>/members/<int:employee_id>", GroupMemberView.as_view()),
-    path("messages/<str:chat_id>", MessageListView.as_view()),
-    path("messages", MessageDetailView.as_view()),
     path("messages/upload", MessageUploadView.as_view()),
     path("messages/link", MessageLinkView.as_view()),
+    path("messages/<str:chat_id>", MessageListView.as_view()),
+    path("messages", MessageDetailView.as_view()),
     path("health", HealthView.as_view()),
 ]
