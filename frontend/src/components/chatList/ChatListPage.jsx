@@ -37,7 +37,13 @@ export default function ChatListPage({ mode = "dm" }) {
     const query = q.trim().toLowerCase();
     return chats
       .filter((c) => (c.kind ?? "dm") === mode)
-      .filter((c) => (query ? c.name.toLowerCase().includes(query) : true));
+      .filter((c) => (query ? c.name.toLowerCase().includes(query) : true))
+      .slice()
+      .sort((a, b) => {
+        const aTime = a.messages?.[a.messages.length - 1]?.createdAt || 0;
+        const bTime = b.messages?.[b.messages.length - 1]?.createdAt || 0;
+        return bTime - aTime;
+      });
   }, [chats, mode, q]);
 
   const placeholder = mode === "group" ? "Search groups" : "Search or start new chat";

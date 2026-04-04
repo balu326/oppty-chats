@@ -225,17 +225,26 @@ export default function Sidebar({ isChatOpen }) {
     setIsSavingProfile(true);
 
     try {
+      const currentAuth = getAuthUser(); // always fresh from localStorage
+      if (!currentAuth?.token) return;
+
       const formData = new FormData();
       formData.append("name", trimmedName);
-      formData.append("phone", draftPhone.trim());
-      formData.append("bio", draftBio.trim());
+      formData.append("phone", (draftPhone || "").trim());
+      formData.append("bio", (draftBio || "").trim());
       if (draftFile) formData.append("avatar", draftFile);
 
       const res = await fetch(`${API_URL}/auth/profile`, {
         method: "PATCH",
-        headers: { Authorization: `Bearer ${authUser?.token}` },
+        headers: { Authorization: `Bearer ${currentAuth.token}` },
         body: formData,
       });
+
+      if (!res.ok) {
+        console.error("Profile save HTTP error:", res.status);
+        return;
+      }
+
       const data = await res.json();
 
       if (data.success && data.employee) {
@@ -248,6 +257,7 @@ export default function Sidebar({ isChatOpen }) {
           photo: emp.avatarUrl || profile.photo,
         };
         setProfile(updated);
+        setDraftPhoto(updated.photo);
         saveAuthUser({ name: updated.name, avatarUrl: updated.photo });
       }
     } catch (err) {
