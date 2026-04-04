@@ -289,20 +289,22 @@
   border-radius: 50%;
   overflow: hidden;
   margin-bottom: 2px;
+  align-self: flex-end;
 }
 
 .bubbleAvatarImg {
-  width: 100%;
-  height: 100%;
+  width: 30px;
+  height: 30px;
   object-fit: cover;
+  border-radius: 50%;
 }
 
 .bubbleAvatarInitial {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: #e67e22;
-  color: #fff;
+  background: #dfe5e7;
+  color: #54656f;
   font-size: 12px;
   font-weight: 700;
   display: flex;

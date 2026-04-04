@@ -14,51 +14,65 @@ export default function MessageBubble({ message }) {
     const { type, url, fileName } = message.attachment;
     const assetBaseUrl = (import.meta.env.VITE_API_URL || "http://localhost:8000/api").replace(/\/api\/?$/, "");
 
-    const resolveUrl = (url) => {
-      if (!url) return "";
-      if (url.startsWith("http")) return url; // already absolute
-      return `${assetBaseUrl}${url}`;
+    const resolveUrl = (u) => {
+      if (!u) return "";
+      if (u.startsWith("http")) return u;
+      return `${assetBaseUrl}${u}`;
     };
 
-    switch (type) {
-      case 'photo':
-        return (
-          <div className="messageAttachment photo">
-            <img src={resolveUrl(url)} alt={fileName || "photo"} className="attachmentImage" />
-          </div>
-        );
-      
-      case 'video':
-        return (
-          <div className="messageAttachment video">
-            <video controls className="attachmentVideo">
-              <source src={resolveUrl(url)} />
-              Your browser does not support the video tag.
-            </video>
-          </div>
-        );
-      
-      case 'link':
-        return (
-          <div className="messageAttachment link">
-            <a href={url} target="_blank" rel="noopener noreferrer" className="linkPreview">
-              <span>🔗</span>
-              <span>{url}</span>
-            </a>
-          </div>
-        );
-      
-      case 'document':
-      default:
-        return (
-          <div className="messageAttachment document">
-            <a href={resolveUrl(url)} download className="documentLink">
-              <span>📄</span>
-              <span>{fileName}</span>
-            </a>
-          </div>
-        );
+    const resolvedUrl = resolveUrl(url);
+
+    // Detect image by extension if type is wrong
+    const isImage = type === "photo" ||
+      /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(url || "");
+    const isVideo = type === "video" ||
+      /\.(mp4|webm|ogg|mov)(\?|$)/i.test(url || "");
+
+    if (isImage) {
+      return (
+        <div className="messageAttachment photo">
+          <a href={resolvedUrl} target="_blank" rel="noopener noreferrer">
+            <img
+              src={resolvedUrl}
+              alt={fileName || "image"}
+              className="attachmentImage"
+              onError={(e) => { e.target.style.display = "none"; }}
+            />
+          </a>
+        </div>
+      );
     }
+
+    if (isVideo) {
+      return (
+        <div className="messageAttachment video">
+          <video controls className="attachmentVideo">
+            <source src={resolvedUrl} />
+          </video>
+        </div>
+      );
+    }
+
+    if (type === "link") {
+      return (
+        <div className="messageAttachment link">
+          <a href={url} target="_blank" rel="noopener noreferrer" className="linkPreview">
+            <span>🔗</span>
+            <span>{url}</span>
+          </a>
+        </div>
+      );
+    }
+
+    // document / fallback
+    return (
+      <div className="messageAttachment document">
+        <a href={resolvedUrl} target="_blank" rel="noopener noreferrer" className="documentLink">
+          <span>📄</span>
+          <span>{fileName || "File"}</span>
+        </a>
+      </div>
+    );
   };
 
   return (
@@ -66,9 +80,19 @@ export default function MessageBubble({ message }) {
       {!mine && (
         <div className="bubbleSenderAvatar">
           {message.senderAvatar
-            ? <img src={message.senderAvatar} alt={message.senderName} className="bubbleAvatarImg" />
-            : <span className="bubbleAvatarInitial">{initial}</span>
-          }
+            ? <img
+                src={message.senderAvatar}
+                alt={message.senderName}
+                className="bubbleAvatarImg"
+                onError={(e) => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }}
+              />
+            : null}
+          <span
+            className="bubbleAvatarInitial"
+            style={{ display: message.senderAvatar ? "none" : "flex" }}
+          >
+            {initial}
+          </span>
         </div>
       )}
       <div className="bubbleContent">

@@ -36,6 +36,7 @@ function normalizeBackendMessage(message, currentEmployeeId) {
     text: message.text || "",
     createdAt: new Date(createdAt).getTime(),
     senderName: message.sender?.name || "Unknown",
+    senderAvatar: message.sender?.avatarUrl || null,
     attachment: message.attachment || null,
   };
 }
