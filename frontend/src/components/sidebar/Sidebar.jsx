@@ -118,20 +118,29 @@ export default function Sidebar({ isChatOpen }) {
   const popupRef = useRef(null);
   const profileBtnRef = useRef(null);
   const fileInputRef = useRef(null);
+  const createPopupRef = useRef(null);
+  const createBtnRef = useRef(null);
+
+  const saveAuthUser = (updatedFields) => {
+    const current = getAuthUser();
+    if (!current) return;
+    localStorage.setItem("employeeAuth", JSON.stringify({ ...current, ...updatedFields }));
+  };
 
   // Load profile from backend on mount
   useEffect(() => {
-    if (!authUser?.token) return;
+    const currentAuth = getAuthUser();
+    if (!currentAuth?.token) return;
     fetch(`${API_URL}/auth/profile`, {
-      headers: { Authorization: `Bearer ${authUser.token}` },
+      headers: { Authorization: `Bearer ${currentAuth.token}` },
     })
       .then((r) => r.json())
       .then((data) => {
         if (data.success && data.employee) {
           const emp = data.employee;
           const updated = {
-            name: emp.name || profile.name,
-            email: emp.email || profile.email,
+            name: emp.name || "",
+            email: emp.email || "",
             phone: emp.phone || "",
             bio: emp.bio || "",
             photo: emp.avatarUrl || null,
@@ -144,11 +153,8 @@ export default function Sidebar({ isChatOpen }) {
           saveAuthUser({ name: updated.name, avatarUrl: updated.photo });
         }
       })
-      .catch(() => {});
+      .catch((err) => console.error("Profile load failed:", err));
   }, []);
-
-  const createPopupRef = useRef(null);
-  const createBtnRef = useRef(null);
 
   const navItems = [
     { id: "chats", to: "/chats", unread: totalDmUnread },
@@ -158,18 +164,6 @@ export default function Sidebar({ isChatOpen }) {
   const adminNavItems = [
     { id: "admin", to: "/admin", label: "Admin Panel" },
   ];
-
-  const saveAuthUser = (updatedFields) => {
-    const current = getAuthUser();
-    if (!current) return;
-
-    const updated = {
-      ...current,
-      ...updatedFields,
-    };
-
-    localStorage.setItem("employeeAuth", JSON.stringify(updated));
-  };
 
   const handleTogglePopup = () => {
     setShowProfilePopup((prev) => !prev);
@@ -225,14 +219,17 @@ export default function Sidebar({ isChatOpen }) {
     setIsSavingProfile(true);
 
     try {
-      const currentAuth = getAuthUser(); // always fresh from localStorage
-      if (!currentAuth?.token) return;
+      const currentAuth = getAuthUser();
+      if (!currentAuth?.token) { console.error("No token"); return; }
 
       const formData = new FormData();
       formData.append("name", trimmedName);
       formData.append("phone", (draftPhone || "").trim());
       formData.append("bio", (draftBio || "").trim());
-      if (draftFile) formData.append("avatar", draftFile);
+      if (draftFile) {
+        formData.append("avatar", draftFile);
+        console.log("Uploading avatar:", draftFile.name, draftFile.size);
+      }
 
       const res = await fetch(`${API_URL}/auth/profile`, {
         method: "PATCH",
@@ -240,12 +237,9 @@ export default function Sidebar({ isChatOpen }) {
         body: formData,
       });
 
-      if (!res.ok) {
-        console.error("Profile save HTTP error:", res.status);
-        return;
-      }
-
+      console.log("Profile PATCH status:", res.status);
       const data = await res.json();
+      console.log("Profile PATCH response:", data);
 
       if (data.success && data.employee) {
         const emp = data.employee;
