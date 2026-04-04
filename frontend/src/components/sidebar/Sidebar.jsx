@@ -7,6 +7,32 @@ import "./Sidebar.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
+function ProfileAvatar({ photo, name, size = 36 }) {
+  const [broken, setBroken] = React.useState(false);
+  const initial = (name || "U").slice(0, 1).toUpperCase();
+
+  if (!photo || broken) {
+    return (
+      <span
+        className="sidebar-initials-avatar"
+        style={{ width: size, height: size, fontSize: size * 0.42 }}
+      >
+        {initial}
+      </span>
+    );
+  }
+
+  return (
+    <img
+      src={photo}
+      alt={name || "User"}
+      className="sidebar-profile-img"
+      style={{ width: size, height: size }}
+      onError={() => setBroken(true)}
+    />
+  );
+}
+
 function ChatsIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -657,10 +683,8 @@ export default function Sidebar({ isChatOpen }) {
             >
               {isSuperAdminUser ? (
                 <span className="sidebar-admin-text">AD</span>
-              ) : profile.photo ? (
-                <img src={profile.photo} alt="User" className="sidebar-profile-img" />
               ) : (
-                <span className="sidebar-initials-avatar">{(profile.name || "U").slice(0, 1).toUpperCase()}</span>
+                <ProfileAvatar photo={profile.photo} name={profile.name} size={36} />
               )}
               <span className="sidebar-item-label">Profile</span>
             </button>
@@ -677,12 +701,9 @@ export default function Sidebar({ isChatOpen }) {
                     <div className="profile-popup-header">
                       {isSuperAdminUser ? (
                         <div className="profile-popup-admin-avatar">AD</div>
-                      ) : profile.photo ? (
-                        <img src={profile.photo} alt="User" className="profile-popup-avatar" />
                       ) : (
-                        <div className="profile-popup-initials">{(profile.name || "U").slice(0, 1).toUpperCase()}</div>
+                        <ProfileAvatar photo={profile.photo} name={profile.name} size={46} />
                       )}
-
                       <div className="profile-popup-user">
                         <h4>{isSuperAdminUser ? `${profile.name} (Admin)` : profile.name}</h4>
                         <p>{profile.email}</p>
@@ -740,13 +761,9 @@ export default function Sidebar({ isChatOpen }) {
                   <>
                     <div className="profile-popup-header">
                       {isSuperAdminUser ? (
-                        <div className="profile-popup-admin-avatar profile-popup-admin-avatar-large">
-                          AD
-                        </div>
-                      ) : profile.photo ? (
-                        <img src={profile.photo} alt="User" className="profile-popup-avatar profile-popup-avatar-large" />
+                        <div className="profile-popup-admin-avatar profile-popup-admin-avatar-large">AD</div>
                       ) : (
-                        <div className="profile-popup-initials profile-popup-initials-large">{(profile.name || "U").slice(0, 1).toUpperCase()}</div>
+                        <ProfileAvatar photo={profile.photo} name={profile.name} size={58} />
                       )}
 
                       <div className="profile-popup-user">
@@ -791,10 +808,8 @@ export default function Sidebar({ isChatOpen }) {
                     <div className="profile-popup-header">
                       {isSuperAdminUser ? (
                         <div className="profile-popup-admin-avatar">AD</div>
-                      ) : draftPhoto ? (
-                        <img src={draftPhoto} alt="Preview" className="profile-popup-avatar" />
                       ) : (
-                        <div className="profile-popup-initials">{(profile.name || "U").slice(0, 1).toUpperCase()}</div>
+                        <ProfileAvatar photo={draftPhoto} name={draftName} size={46} />
                       )}
 
                       <div className="profile-popup-user">
