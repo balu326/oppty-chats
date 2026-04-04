@@ -30,7 +30,7 @@ function SectionTitle({ mode }) {
 }
 
 export default function ChatListPage({ mode = "dm" }) {
-  const { chats } = useChats();
+  const { chats, getUnreadCount } = useChats();
   const [q, setQ] = useState("");
 
   const filtered = useMemo(() => {
@@ -62,6 +62,7 @@ export default function ChatListPage({ mode = "dm" }) {
       <div className="chatList" role="list">
         {filtered.map((chat) => {
           const last = chat.messages?.[chat.messages.length - 1];
+          const unread = getUnreadCount(chat.id);
 
           return (
             <NavLink
@@ -85,6 +86,9 @@ export default function ChatListPage({ mode = "dm" }) {
                     last.text
                   ) : (
                     <span className="muted">No messages yet</span>
+                  )}
+                  {unread > 0 && (
+                    <span className="unreadBadge">{unread > 99 ? "99+" : unread}</span>
                   )}
                 </div>
               </div>

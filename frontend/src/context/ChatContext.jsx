@@ -4,6 +4,18 @@ import { getAuthUser } from "../utils/auth.js";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 const STORAGE_KEY = "oppty_chat_v1";
+const READ_STORAGE_KEY = "oppty_chat_read_v1";
+
+function loadReadTimestamps() {
+  try {
+    const raw = localStorage.getItem(READ_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function saveReadTimestamps(map) {
+  try { localStorage.setItem(READ_STORAGE_KEY, JSON.stringify(map)); } catch {}
+}
 
 function buildDmChatId(userA, userB) {
   return `dm_${[String(userA), String(userB)].sort().join("_")}`;
@@ -668,6 +680,7 @@ function reducer(state, action) {
 export function ChatProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, { chats: [] }); // Start with EMPTY data
   const [loading, setLoading] = useState(true);
+  const [readTimestamps, setReadTimestamps] = useState(loadReadTimestamps);
 
   // Initialize chats with employees from backend on mount
   useEffect(() => {
@@ -723,10 +736,28 @@ export function ChatProvider({ children }) {
   }, []);
 
   const api = useMemo(
-    () => ({
+    () => {
+      const getUnreadCount = (chatId) => {
+        const chat = state.chats.find((c) => String(c.id) === String(chatId));
+        if (!chat?.messages?.length) return 0;
+        const lastRead = readTimestamps[String(chatId)] || 0;
+        return chat.messages.filter(
+          (m) => m.sender !== "me" && (m.createdAt || 0) > lastRead
+        ).length;
+      };
+
+      const markRead = (chatId) => {
+        const updated = { ...readTimestamps, [String(chatId)]: Date.now() };
+        setReadTimestamps(updated);
+        saveReadTimestamps(updated);
+      };
+
+      return {
       chats: state.chats,
       loading: loading,
       getChatById: (id) => state.chats.find((c) => String(c.id) === String(id)),
+      getUnreadCount,
+      markRead,
       sendMessage: (chatId, text) => dispatch({ type: "SEND", chatId, text }),
       updateChatName: (chatId, name) =>
         dispatch({ type: "UPDATE_CHAT_NAME", chatId, name }),
@@ -776,8 +807,9 @@ export function ChatProvider({ children }) {
         }),
       resetChats: () => dispatch({ type: "RESET" }),
       isAdmin: isSystemAdmin(),
-    }),
-    [state.chats, loading]
+    };
+    },
+    [state.chats, loading, readTimestamps]
   );
 
   return <ChatContext.Provider value={api}>{children}</ChatContext.Provider>;

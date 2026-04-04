@@ -68,7 +68,15 @@ function getAuthUser() {
 
 export default function Sidebar({ isChatOpen }) {
   const navigate = useNavigate();
-  const { addContact, addGroup } = useChats();
+  const { addContact, addGroup, chats, getUnreadCount } = useChats();
+
+  const totalDmUnread = chats
+    .filter((c) => c.kind === "dm")
+    .reduce((sum, c) => sum + getUnreadCount(c.id), 0);
+
+  const totalGroupUnread = chats
+    .filter((c) => c.kind === "group")
+    .reduce((sum, c) => sum + getUnreadCount(c.id), 0);
 
   const authUser = getAuthUser();
   const isSuperAdminUser = authUser?.role === "superadmin";
@@ -113,8 +121,8 @@ export default function Sidebar({ isChatOpen }) {
   const createBtnRef = useRef(null);
 
   const navItems = [
-    { id: "chats", to: "/chats", badge: "99+" },
-    { id: "groups", to: "/groups", dot: true },
+    { id: "chats", to: "/chats", unread: totalDmUnread },
+    { id: "groups", to: "/groups", unread: totalGroupUnread },
   ];
 
   const adminNavItems = [
@@ -400,8 +408,9 @@ export default function Sidebar({ isChatOpen }) {
             >
               <span className="sidebar-icon">{ICON_BY_ID[item.id]}</span>
               <span className="sidebar-item-label">{item.id.charAt(0).toUpperCase() + item.id.slice(1)}</span>
-              {item.badge && <span className="sidebar-badge">{item.badge}</span>}
-              {item.dot && <span className="sidebar-dot" />}
+              {item.unread > 0 && (
+                <span className="sidebar-badge">{item.unread > 99 ? "99+" : item.unread}</span>
+              )}
             </NavLink>
           ))}
 
