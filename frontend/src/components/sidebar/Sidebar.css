@@ -834,3 +834,37 @@
   border-radius: 50%;
   object-fit: cover;
 }
+
+.sidebar-initials-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e67e22;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.profile-popup-initials {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: #e67e22;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.profile-popup-initials-large {
+  width: 58px;
+  height: 58px;
+  font-size: 22px;
+}
