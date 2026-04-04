@@ -299,7 +299,7 @@ class AllMessagesView(APIView):
 
     def get(self, request):
         messages = Message.objects.select_related("sender").all().order_by("-created_at")[:1000]
-        return Response({"success": True, "messages": MessageSerializer(messages, many=True).data})
+        return Response({"success": True, "messages": MessageSerializer(messages, many=True, context={"request": request}).data})
 
 
 class GroupListView(APIView):
@@ -456,7 +456,7 @@ class MessageListView(APIView):
         normalized_chat_id = _conversation_id(user_id, chat_id) if user_id and "_" not in chat_id else chat_id
         messages = Message.objects.select_related("sender").filter(chat_id=normalized_chat_id)
         count = messages.count()
-        return Response({"success": True, "messages": MessageSerializer(messages, many=True).data, "totalFetched": count, "uniqueCount": count})
+        return Response({"success": True, "messages": MessageSerializer(messages, many=True, context={"request": request}).data, "totalFetched": count, "uniqueCount": count})
 
 
 class MessageDetailView(APIView):
@@ -478,7 +478,7 @@ class MessageDetailView(APIView):
         duplicate_threshold = timezone.now() - timezone.timedelta(seconds=5)
         duplicate = Message.objects.filter(chat_id=chat_id, sender=sender, text=text, created_at__gte=duplicate_threshold).first()
         if duplicate:
-            return Response({"success": True, "message": MessageSerializer(duplicate).data, "isDuplicate": True})
+            return Response({"success": True, "message": MessageSerializer(duplicate, context={"request": request}).data, "isDuplicate": True})
 
         # Enforce admins_only group restriction
         try:
@@ -491,7 +491,7 @@ class MessageDetailView(APIView):
         receiver = _receiver_from_chat_id(chat_id, sender.id)
         message = Message.objects.create(chat_id=chat_id, sender=sender, receiver=receiver, text=text)
         broadcast_message(message)
-        return Response({"success": True, "message": MessageSerializer(message).data, "isNew": True})
+        return Response({"success": True, "message": MessageSerializer(message, context={"request": request}).data, "isNew": True})
 
 
 class MessageUploadView(APIView):
@@ -524,19 +524,21 @@ class MessageUploadView(APIView):
         elif upload.content_type.startswith("video/"):
             attachment_type = Message.ATTACHMENT_VIDEO
 
+        attachment_url = request.build_absolute_uri(storage.url(stored_name))
+
         message = Message.objects.create(
             chat_id=chat_id,
             sender=sender,
             receiver=_receiver_from_chat_id(chat_id, sender.id),
             text="",
             attachment_type=attachment_type,
-            attachment_url=storage.url(stored_name),
+            attachment_url=attachment_url,
             attachment_file_name=upload.name,
             attachment_file_size=upload.size,
             attachment_mime_type=upload.content_type,
         )
         broadcast_message(message)
-        return Response({"success": True, "message": MessageSerializer(message).data, "fileUrl": storage.url(stored_name)})
+        return Response({"success": True, "message": MessageSerializer(message, context={"request": request}).data, "fileUrl": attachment_url})
 
 
 class MessageLinkView(APIView):
@@ -568,4 +570,4 @@ class MessageLinkView(APIView):
             attachment_url=url,
         )
         broadcast_message(message)
-        return Response({"success": True, "message": MessageSerializer(message).data})
+        return Response({"success": True, "message": MessageSerializer(message, context={"request": request}).data})

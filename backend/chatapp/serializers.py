@@ -86,10 +86,19 @@ class GroupSerializer(serializers.ModelSerializer):
 
 class MessageSenderSerializer(serializers.ModelSerializer):
     _id = serializers.CharField(source="pk", read_only=True)
+    avatarUrl = serializers.SerializerMethodField()
 
     class Meta:
         model = Employee
-        fields = ["_id", "name", "email", "role"]
+        fields = ["_id", "name", "email", "role", "avatarUrl"]
+
+    def get_avatarUrl(self, obj):
+        request = self.context.get("request")
+        if obj.avatar and request:
+            return request.build_absolute_uri(obj.avatar.url)
+        if obj.avatar:
+            return obj.avatar.url
+        return None
 
 
 class MessageSerializer(serializers.ModelSerializer):

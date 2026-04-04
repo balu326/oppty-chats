@@ -33,10 +33,15 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 return
 
         message = await self._create_message(self.employee.id, text)
-        await self.chat_message({"message": MessageSerializer(message).data})
+        serialized = await self._serialize_message(message)
+        await self.chat_message({"message": serialized})
 
     async def chat_message(self, event):
         await self.send_json(event["message"])
+
+    @database_sync_to_async
+    def _serialize_message(self, message):
+        return MessageSerializer(message).data
 
     @database_sync_to_async
     def _is_group_admins_only(self, chat_id):

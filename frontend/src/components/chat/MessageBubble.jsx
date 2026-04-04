@@ -6,18 +6,25 @@ function formatTime(ts) {
 
 export default function MessageBubble({ message }) {
   const mine = message.sender === "me";
+  const initial = (message.senderName || "?").slice(0, 1).toUpperCase();
 
   const renderAttachment = () => {
     if (!message.attachment) return null;
 
     const { type, url, fileName } = message.attachment;
-    const assetBaseUrl = (import.meta.env.VITE_API_URL || "http://localhost:8000/api").replace(/\/api$/, "");
+    const assetBaseUrl = (import.meta.env.VITE_API_URL || "http://localhost:8000/api").replace(/\/api\/?$/, "");
+
+    const resolveUrl = (url) => {
+      if (!url) return "";
+      if (url.startsWith("http")) return url; // already absolute
+      return `${assetBaseUrl}${url}`;
+    };
 
     switch (type) {
       case 'photo':
         return (
           <div className="messageAttachment photo">
-            <img src={`${assetBaseUrl}${url}`} alt={fileName} className="attachmentImage" />
+            <img src={resolveUrl(url)} alt={fileName || "photo"} className="attachmentImage" />
           </div>
         );
       
@@ -25,7 +32,7 @@ export default function MessageBubble({ message }) {
         return (
           <div className="messageAttachment video">
             <video controls className="attachmentVideo">
-              <source src={`${assetBaseUrl}${url}`} />
+              <source src={resolveUrl(url)} />
               Your browser does not support the video tag.
             </video>
           </div>
@@ -45,7 +52,7 @@ export default function MessageBubble({ message }) {
       default:
         return (
           <div className="messageAttachment document">
-            <a href={`${assetBaseUrl}${url}`} download className="documentLink">
+            <a href={resolveUrl(url)} download className="documentLink">
               <span>📄</span>
               <span>{fileName}</span>
             </a>
@@ -56,15 +63,25 @@ export default function MessageBubble({ message }) {
 
   return (
     <div className={`bubbleRow ${mine ? "mine" : "theirs"}`}>
-      {!mine && message.senderName && (
-        <div className="senderName">{message.senderName}</div>
+      {!mine && (
+        <div className="bubbleSenderAvatar">
+          {message.senderAvatar
+            ? <img src={message.senderAvatar} alt={message.senderName} className="bubbleAvatarImg" />
+            : <span className="bubbleAvatarInitial">{initial}</span>
+          }
+        </div>
       )}
-      <div className={`bubble ${mine ? "mine" : "theirs"}`}>
-        {renderAttachment()}
-        {message.text && message.text.trim() && (
-          <div className="bubbleText">{message.text}</div>
+      <div className="bubbleContent">
+        {!mine && message.senderName && (
+          <div className="senderName">{message.senderName}</div>
         )}
-        <div className="bubbleMeta">{formatTime(message.createdAt)}</div>
+        <div className={`bubble ${mine ? "mine" : "theirs"}`}>
+          {renderAttachment()}
+          {message.text && message.text.trim() && (
+            <div className="bubbleText">{message.text}</div>
+          )}
+          <div className="bubbleMeta">{formatTime(message.createdAt)}</div>
+        </div>
       </div>
     </div>
   );

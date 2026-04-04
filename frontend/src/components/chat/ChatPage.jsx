@@ -19,6 +19,7 @@ function normalizeMessage(msg, myEmployeeId) {
     text: msg.text || "",
     createdAt: new Date(createdAt).getTime(),
     senderName: msg.sender?.name || "Unknown",
+    senderAvatar: msg.sender?.avatarUrl || null,
     attachment: msg.attachment || null,
   };
 }
@@ -67,6 +68,7 @@ export default function ChatPage() {
     removeGroupMember,
     loadMessages,
     receiveMessage,
+    markRead,
     isAdmin,
     loading,
     chats,
@@ -187,6 +189,11 @@ export default function ChatPage() {
   // Scroll to bottom when messages change
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatId, chat?.messages?.length]);
+
+  // Mark chat as read when opened or new messages arrive
+  useEffect(() => {
+    if (chatId) markRead(chatId);
   }, [chatId, chat?.messages?.length]);
 
   // Always reload messages from backend when chatId changes or component mount
