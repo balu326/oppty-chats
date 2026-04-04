@@ -81,6 +81,7 @@ export default function ChatPage() {
   const [activeSearchIndex, setActiveSearchIndex] = useState(0);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const [showChatInfo, setShowChatInfo] = useState(false);
+  const [contactInfo, setContactInfo] = useState(null); // fetched from backend
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedName, setEditedName] = useState("");
@@ -507,6 +508,25 @@ export default function ChatPage() {
     setShowOptionsMenu(false);
     setEditedName(chat.name || "");
     setIsEditingName(false);
+    setContactInfo(null);
+
+    // Fetch full employee profile for DM chats
+    if (chat.kind === "dm" && chat.employeeId) {
+      const auth = getAuthUser();
+      fetch(`${API_URL}/auth/employees`, {
+        headers: { Authorization: `Bearer ${auth?.token}` },
+      })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success && Array.isArray(data.employees)) {
+            const emp = data.employees.find(
+              (e) => String(e._id || e.id) === String(chat.employeeId)
+            );
+            if (emp) setContactInfo(emp);
+          }
+        })
+        .catch(() => {});
+    }
   };
 
   const handleCloseChatInfo = () => {
@@ -895,195 +915,125 @@ export default function ChatPage() {
 
       {showChatInfo && (
         <div className="chatInfoOverlay" onClick={handleCloseChatInfo}>
-          <aside
-            className="chatInfoDrawer"
-            onClick={(e) => e.stopPropagation()}
-            aria-label="Chat profile information"
-          >
+          <aside className="chatInfoDrawer" onClick={(e) => e.stopPropagation()} aria-label="Contact info">
+
+            {/* Header */}
             <div className="chatInfoDrawerHeader">
-              <button
-                type="button"
-                className="iconBtn"
-                onClick={handleCloseChatInfo}
-                aria-label="Close profile info"
-              >
-                ←
-              </button>
-              <div className="chatInfoDrawerTitle">
+              <span className="chatInfoDrawerTitle">
                 {chat.kind === "group" ? "Group info" : "Contact info"}
-              </div>
+              </span>
+              <button type="button" className="iconBtn" onClick={handleCloseChatInfo} aria-label="Close">✕</button>
             </div>
 
+            {/* Hero */}
             <div className="chatInfoHero">
-              <img className="chatInfoHeroAvatar" src={chat.avatarUrl} alt={chat.name} />
-
-              {!isEditingName ? (
-                <>
-                  <div className="chatInfoHeroName">{chat.name}</div>
-                  <div className="chatInfoHeroStatus">
-                    {chat.blocked
-                      ? "Blocked by admin"
-                      : chat.isOnline
-                      ? "online"
-                      : chat.lastSeen
-                      ? chat.lastSeen
-                      : "offline"}
-                  </div>
-
-                  {canEditName && (
-                    <button
-                      type="button"
-                      className="chatEditNameBtn"
-                      onClick={handleStartEditName}
-                    >
-                      Edit name
-                    </button>
-                  )}
-                </>
-              ) : (
-                <div className="chatEditNameBox">
-                  <input
-                    ref={editNameInputRef}
-                    type="text"
-                    className="chatEditNameInput"
-                    value={editedName}
-                    onChange={(e) => setEditedName(e.target.value)}
-                    placeholder="Enter name"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSaveEditName();
-                    }}
-                  />
-
-                  <div className="chatEditNameActions">
-                    <button
-                      type="button"
-                      className="popup-btn popup-btn-secondary"
-                      onClick={handleCancelEditName}
-                    >
-                      Cancel
-                    </button>
-
-                    <button
-                      type="button"
-                      className="popup-btn popup-btn-danger"
-                      onClick={handleSaveEditName}
-                      disabled={!editedName.trim()}
-                    >
-                      Save
-                    </button>
-                  </div>
+              <div className="chatInfoAvatarWrap">
+                {chat.avatarUrl ? (
+                  <img className="chatInfoHeroAvatar" src={chat.avatarUrl} alt={chat.name}
+                    onError={(e) => { e.target.style.display="none"; e.target.nextSibling.style.display="flex"; }} />
+                ) : null}
+                <div className="chatInfoHeroInitials" style={{ display: chat.avatarUrl ? "none" : "flex" }}>
+                  {(chat.name || "?").slice(0, 2).toUpperCase()}
                 </div>
-              )}
+              </div>
+
+              <div className="chatInfoHeroName">{chat.name}</div>
+              <div className="chatInfoHeroRole">
+                {contactInfo?.role
+                  ? contactInfo.role.charAt(0).toUpperCase() + contactInfo.role.slice(1)
+                  : chat.kind === "group"
+                  ? `${chat.members?.length || 0} members`
+                  : chat.contact || ""}
+              </div>
+
+              {/* Action buttons */}
+              <div className="chatInfoActions">
+                <button type="button" className="chatInfoActionBtn" onClick={handleCloseChatInfo}>
+                  <span className="chatInfoActionIcon">💬</span>
+                  <span>Chat</span>
+                </button>
+                {isSuperAdmin && (
+                  <button type="button" className="chatInfoActionBtn danger" onClick={handleToggleBlock}>
+                    <span className="chatInfoActionIcon">{chat.blocked ? "🔓" : "🚫"}</span>
+                    <span>{chat.blocked ? "Unblock" : "Block"}</span>
+                  </button>
+                )}
+              </div>
             </div>
 
+            {/* Info rows */}
             <div className="chatInfoSection">
-              <div className="chatInfoCardRow">
-                <span className="chatInfoLabel">About</span>
-                <strong className="chatInfoValue">
-                  {chat.about || "Hey there! I am using Oppty Chats."}
-                </strong>
+
+              {/* Phone */}
+              {(contactInfo?.phone || chat.kind === "dm") && (
+                <div className="chatInfoRow">
+                  <span className="chatInfoRowIcon">📞</span>
+                  <div className="chatInfoRowBody">
+                    <div className="chatInfoRowValue">{contactInfo?.phone || "Not set"}</div>
+                    <div className="chatInfoRowLabel">Phone</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Email */}
+              <div className="chatInfoRow">
+                <span className="chatInfoRowIcon">✉️</span>
+                <div className="chatInfoRowBody">
+                  <div className="chatInfoRowValue">{contactInfo?.email || chat.contact || "Not available"}</div>
+                  <div className="chatInfoRowLabel">Email</div>
+                </div>
               </div>
 
-              <div className="chatInfoCardRow">
-                <span className="chatInfoLabel">
-                  {chat.kind === "group" ? "Group contact" : "Phone / Email"}
-                </span>
-                <strong className="chatInfoValue">
-                  {chat.contact || chat.email || "Not available"}
-                </strong>
-              </div>
+              {/* Bio */}
+              {contactInfo?.bio && (
+                <div className="chatInfoRow">
+                  <span className="chatInfoRowIcon">ℹ️</span>
+                  <div className="chatInfoRowBody">
+                    <div className="chatInfoRowValue">{contactInfo.bio}</div>
+                    <div className="chatInfoRowLabel">About</div>
+                  </div>
+                </div>
+              )}
 
+              {/* Group members */}
               {chat.kind === "group" && (
-                <div className="chatInfoCardRow">
-                  <span className="chatInfoLabel">Employees in Group</span>
+                <div className="chatInfoGroupSection">
+                  <div className="chatInfoGroupTitle">{chat.members?.length || 0} Members</div>
+                  {(chat.members || []).map((member) => (
+                    <div key={member.id} className="chatInfoMemberRow">
+                      <div className="chatInfoMemberAvatar">
+                        {(member.name || "?").slice(0, 1).toUpperCase()}
+                      </div>
+                      <div className="chatInfoMemberInfo">
+                        <div className="chatInfoMemberName">{member.name}</div>
+                        <div className="chatInfoMemberRole">{member.role || "employee"}</div>
+                      </div>
+                      {canManageGroup && (
+                        <button type="button" className="chatInfoMemberRemove" onClick={() => handleRemoveMember(member.id)}>✕</button>
+                      )}
+                    </div>
+                  ))}
 
-                  <div className="groupMembersList">
-                    {chat.members?.length ? (
-                      chat.members.map((member) => (
-                        <div key={member.id} className="groupMemberItem">
-                          <div className="groupMemberInfo">
-                            <strong>{member.name}</strong>
-                            <span>{member.email}</span>
-                          </div>
-
-                          {canManageGroup && (
-                            <button
-                              type="button"
-                              className="groupMemberRemoveBtn"
-                              onClick={() => handleRemoveMember(member.id)}
-                            >
-                              Remove
-                            </button>
-                          )}
-                        </div>
-                      ))
-                    ) : (
-                      <span className="muted">No employees added yet.</span>
-                    )}
-                  </div>
+                  {canManageGroup && (
+                    <div className="chatInfoAddMember">
+                      <select className="groupMemberSelect" value={selectedMemberId} onChange={(e) => setSelectedMemberId(e.target.value)}>
+                        <option value="">Add member…</option>
+                        {availableEmployees.map((emp) => (
+                          <option key={emp.id} value={emp.id}>{emp.name}</option>
+                        ))}
+                      </select>
+                      <button type="button" className="chatInfoAddBtn" onClick={handleAddMember} disabled={!selectedMemberId}>Add</button>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {canManageGroup && chat.kind === "group" && (
-                <div className="chatInfoCardRow">
-                  <span className="chatInfoLabel">Add Employee</span>
-
-                  <div className="groupAddMemberBox">
-                    <select
-                      className="groupMemberSelect"
-                      value={selectedMemberId}
-                      onChange={(e) => setSelectedMemberId(e.target.value)}
-                    >
-                      <option value="">Select employee</option>
-                      {availableEmployees.map((emp) => (
-                        <option key={emp.id} value={emp.id}>
-                          {emp.name} ({emp.email})
-                        </option>
-                      ))}
-                    </select>
-
-                    <button
-                      type="button"
-                      className="popup-btn popup-btn-danger"
-                      onClick={handleAddMember}
-                      disabled={!selectedMemberId}
-                    >
-                      Add
-                    </button>
-                  </div>
-                </div>
-              )}
-
+              {/* Admin danger zone */}
               {isSuperAdmin && (
-                <div className="chatInfoAdminActions">
-                  <button
-                    type="button"
-                    className="popup-btn popup-btn-secondary"
-                    onClick={handleToggleBlock}
-                  >
-                    {chat.blocked ? "Unblock" : "Block"}{" "}
-                    {chat.kind === "group" ? "Group" : "Contact"}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="popup-btn popup-btn-danger"
-                    onClick={handleDeleteChat}
-                  >
-                    Delete {chat.kind === "group" ? "Group" : "Chat"}
-                  </button>
-                </div>
+                <button type="button" className="chatInfoDeleteBtn" onClick={handleDeleteChat}>
+                  🗑 Delete {chat.kind === "group" ? "group" : "chat"}
+                </button>
               )}
-            </div>
-
-            <div className="chatInfoDrawerActions">
-              <button
-                type="button"
-                className="popup-btn popup-btn-secondary"
-                onClick={handleCloseChatInfo}
-              >
-                Close
-              </button>
             </div>
           </aside>
         </div>

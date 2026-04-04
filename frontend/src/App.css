@@ -923,119 +923,265 @@
 }
 
 .chatInfoDrawer {
-  width: 380px;
+  width: 340px;
   max-width: 100%;
   height: 100vh;
-  background: #ffffff;
-  box-shadow: -10px 0 30px rgba(17, 27, 33, 0.12);
+  background: #f0f2f5;
+  box-shadow: -4px 0 20px rgba(17,27,33,0.12);
   display: flex;
   flex-direction: column;
-  animation: drawerSlideIn 0.22s ease;
+  overflow-y: auto;
+  animation: drawerSlideIn 0.2s ease;
 }
 
 .chatInfoDrawerHeader {
-  height: 64px;
+  height: 56px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 12px;
-  border-bottom: 1px solid var(--border);
-  background: #ffffff;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: #fff;
+  border-bottom: 1px solid #e9edef;
+  flex-shrink: 0;
 }
 
 .chatInfoDrawerTitle {
   font-size: 16px;
-  font-weight: 800;
-  color: var(--text);
+  font-weight: 700;
+  color: #111b21;
 }
 
+/* Hero */
 .chatInfoHero {
+  background: #fff;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 26px 20px 20px;
-  border-bottom: 1px solid var(--border);
-  background: #ffffff;
+  padding: 28px 20px 20px;
+  margin-bottom: 8px;
 }
 
-.chatInfoHeroAvatar {
-  width: 110px;
-  height: 110px;
-  border-radius: 50%;
-  object-fit: cover;
+.chatInfoAvatarWrap {
+  position: relative;
+  width: 100px;
+  height: 100px;
   margin-bottom: 14px;
 }
 
-.chatInfoHeroName {
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--text);
-  text-align: center;
+.chatInfoHeroAvatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
-.chatInfoHeroStatus {
-  margin-top: 6px;
-  font-size: 14px;
-  color: var(--muted);
-  text-align: center;
-}
-
-.chatInfoSection {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  overflow-y: auto;
-}
-
-.chatInfoCardRow {
-  background: #f7f8f9;
-  border: 1px solid #edf0f2;
-  border-radius: 14px;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.chatInfoLabel {
-  font-size: 12px;
+.chatInfoHeroInitials {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: #dfe5e7;
+  color: #54656f;
+  font-size: 36px;
   font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chatInfoHeroName {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111b21;
+  text-align: center;
+}
+
+.chatInfoHeroRole {
+  font-size: 13px;
+  color: #667781;
+  margin-top: 4px;
+  text-align: center;
+}
+
+/* Action buttons row */
+.chatInfoActions {
+  display: flex;
+  gap: 24px;
+  margin-top: 18px;
+}
+
+.chatInfoActionBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: #008069;
+  font-weight: 600;
+}
+
+.chatInfoActionBtn.danger {
+  color: #ea0038;
+}
+
+.chatInfoActionIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #f0f2f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+/* Info rows */
+.chatInfoSection {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chatInfoRow {
+  background: #fff;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.chatInfoRowIcon {
+  font-size: 18px;
+  flex-shrink: 0;
+  width: 24px;
+  text-align: center;
+}
+
+.chatInfoRowBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chatInfoRowValue {
+  font-size: 14px;
+  color: #111b21;
+  font-weight: 500;
+}
+
+.chatInfoRowLabel {
+  font-size: 12px;
   color: #667781;
 }
 
-.chatInfoValue {
-  font-size: 14px;
-  color: #111b21;
-  line-height: 1.5;
+/* Group members */
+.chatInfoGroupSection {
+  background: #fff;
+  padding: 14px 20px;
+  margin-top: 8px;
 }
 
-.chatInfoDrawerActions {
-  margin-top: auto;
-  padding: 16px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  justify-content: flex-end;
-  background: #ffffff;
+.chatInfoGroupTitle {
+  font-size: 13px;
+  color: #008069;
+  font-weight: 700;
+  margin-bottom: 12px;
 }
+
+.chatInfoMemberRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.chatInfoMemberAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #dfe5e7;
+  color: #54656f;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.chatInfoMemberInfo {
+  flex: 1;
+}
+
+.chatInfoMemberName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111b21;
+}
+
+.chatInfoMemberRole {
+  font-size: 12px;
+  color: #667781;
+}
+
+.chatInfoMemberRemove {
+  background: none;
+  border: none;
+  color: #667781;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.chatInfoMemberRemove:hover { color: #ea0038; }
+
+.chatInfoAddMember {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.chatInfoAddBtn {
+  background: #008069;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chatInfoAddBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.chatInfoDeleteBtn {
+  margin: 16px 20px;
+  background: none;
+  border: 1px solid #ea0038;
+  color: #ea0038;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  width: calc(100% - 40px);
+}
+
+.chatInfoDeleteBtn:hover { background: #fff0f3; }
 
 @keyframes drawerSlideIn {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
 }
 
 @media (max-width: 768px) {
-  .chatInfoOverlay {
-    justify-content: flex-end;
-  }
-
-  .chatInfoDrawer {
-    width: 100%;
-  }
+  .chatInfoDrawer { width: 100%; }
 }
 
 
