@@ -26,6 +26,8 @@ class Employee(models.Model):
         related_name="assigned_employees",
     )
     avatar = models.ImageField(upload_to="avatars/", null=True, blank=True)
+    phone = models.CharField(max_length=30, blank=True, default="")
+    bio = models.TextField(blank=True, default="")
     otp_value = models.CharField(max_length=6, blank=True, default="")
     otp_expires_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

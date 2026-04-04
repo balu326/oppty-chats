@@ -110,12 +110,43 @@ export default function Sidebar({ isChatOpen }) {
   });
 
   const [draftName, setDraftName] = useState(profile.name);
+  const [draftPhone, setDraftPhone] = useState(profile.phone);
+  const [draftBio, setDraftBio] = useState(profile.bio);
   const [draftPhoto, setDraftPhoto] = useState(profile.photo);
   const [draftFile, setDraftFile] = useState(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   const popupRef = useRef(null);
   const profileBtnRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  // Load profile from backend on mount
+  useEffect(() => {
+    if (!authUser?.token) return;
+    fetch(`${API_URL}/auth/profile`, {
+      headers: { Authorization: `Bearer ${authUser.token}` },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.employee) {
+          const emp = data.employee;
+          const updated = {
+            name: emp.name || profile.name,
+            email: emp.email || profile.email,
+            phone: emp.phone || "",
+            bio: emp.bio || "",
+            photo: emp.avatarUrl || profileImg,
+          };
+          setProfile(updated);
+          setDraftName(updated.name);
+          setDraftPhone(updated.phone);
+          setDraftBio(updated.bio);
+          setDraftPhoto(updated.photo);
+          saveAuthUser({ name: updated.name, avatarUrl: updated.photo });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const createPopupRef = useRef(null);
   const createBtnRef = useRef(null);
@@ -169,7 +200,10 @@ export default function Sidebar({ isChatOpen }) {
     setIsEditingProfile(true);
     setIsViewingProfile(false);
     setDraftName(profile.name);
+    setDraftPhone(profile.phone);
+    setDraftBio(profile.bio);
     setDraftPhoto(profile.photo);
+    setDraftFile(null);
   };
 
   const handleBackToMenu = () => {
@@ -180,6 +214,8 @@ export default function Sidebar({ isChatOpen }) {
   const handleCancelEdit = () => {
     setIsEditingProfile(false);
     setDraftName(profile.name);
+    setDraftPhone(profile.phone);
+    setDraftBio(profile.bio);
     setDraftPhoto(profile.photo);
     setDraftFile(null);
   };
@@ -187,30 +223,41 @@ export default function Sidebar({ isChatOpen }) {
   const handleSaveProfile = async () => {
     const trimmedName = draftName.trim();
     if (!trimmedName) return;
+    setIsSavingProfile(true);
 
-    let avatarUrl = profile.photo;
+    try {
+      const formData = new FormData();
+      formData.append("name", trimmedName);
+      formData.append("phone", draftPhone.trim());
+      formData.append("bio", draftBio.trim());
+      if (draftFile) formData.append("avatar", draftFile);
 
-    if (draftFile) {
-      try {
-        const formData = new FormData();
-        formData.append("avatar", draftFile);
-        const res = await fetch(`${API_URL}/auth/profile`, {
-          method: "PATCH",
-          headers: { Authorization: `Bearer ${authUser?.token}` },
-          body: formData,
-        });
-        const data = await res.json();
-        if (data.success) avatarUrl = data.avatarUrl;
-      } catch (err) {
-        console.error("Avatar upload failed:", err);
+      const res = await fetch(`${API_URL}/auth/profile`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${authUser?.token}` },
+        body: formData,
+      });
+      const data = await res.json();
+
+      if (data.success && data.employee) {
+        const emp = data.employee;
+        const updated = {
+          name: emp.name,
+          email: emp.email || profile.email,
+          phone: emp.phone || "",
+          bio: emp.bio || "",
+          photo: emp.avatarUrl || profile.photo,
+        };
+        setProfile(updated);
+        saveAuthUser({ name: updated.name, avatarUrl: updated.photo });
       }
+    } catch (err) {
+      console.error("Profile save failed:", err);
+    } finally {
+      setIsSavingProfile(false);
+      setDraftFile(null);
+      setIsEditingProfile(false);
     }
-
-    const updatedProfile = { ...profile, name: trimmedName, photo: avatarUrl };
-    setProfile(updatedProfile);
-    saveAuthUser({ name: trimmedName, avatarUrl });
-    setDraftFile(null);
-    setIsEditingProfile(false);
   };
 
   const handleOpenLogoutConfirm = () => {
@@ -608,10 +655,7 @@ export default function Sidebar({ isChatOpen }) {
               {isSuperAdminUser ? (
                 <span className="sidebar-admin-text">AD</span>
               ) : (
-                <>
-                  <img src={profile.photo} alt="User" className="sidebar-profile-img sidebar-profile-avatar" />
-                  <span className="sidebar-profile-icon"><ProfileIcon /></span>
-                </>
+                <img src={profile.photo} alt="User" className="sidebar-profile-img sidebar-profile-avatar" />
               )}
               <span className="sidebar-item-label">Profile</span>
             </button>
@@ -709,12 +753,12 @@ export default function Sidebar({ isChatOpen }) {
                     <div className="profile-view-details">
                       <div className="profile-detail-card">
                         <span className="profile-detail-label">Phone</span>
-                        <span className="profile-detail-value">{profile.phone}</span>
+                        <span className="profile-detail-value">{profile.phone || "Not set"}</span>
                       </div>
 
                       <div className="profile-detail-card">
                         <span className="profile-detail-label">Bio</span>
-                        <span className="profile-detail-value">{profile.bio}</span>
+                        <span className="profile-detail-value">{profile.bio || "Not set"}</span>
                       </div>
                     </div>
 
@@ -764,10 +808,33 @@ export default function Sidebar({ isChatOpen }) {
                         />
                       </label>
 
+                      <label className="profile-input-group">
+                        <span className="profile-input-label">Phone</span>
+                        <input
+                          type="text"
+                          className="profile-input"
+                          value={draftPhone}
+                          onChange={(e) => setDraftPhone(e.target.value)}
+                          placeholder="Enter your phone number"
+                        />
+                      </label>
+
+                      <label className="profile-input-group">
+                        <span className="profile-input-label">Bio</span>
+                        <input
+                          type="text"
+                          className="profile-input"
+                          value={draftBio}
+                          onChange={(e) => setDraftBio(e.target.value)}
+                          placeholder="Write something about yourself"
+                        />
+                      </label>
+
                       {!isSuperAdminUser && (
                         <div className="profile-input-group">
                           <span className="profile-input-label">Photo</span>
-                          <div className="profile-edit-actions">
+                          <div className="profile-photo-preview">
+                            <img src={draftPhoto} alt="Preview" className="profile-photo-thumb" />
                             <button
                               type="button"
                               className="popup-btn popup-btn-secondary"
@@ -775,7 +842,6 @@ export default function Sidebar({ isChatOpen }) {
                             >
                               Choose Photo
                             </button>
-
                             <input
                               ref={fileInputRef}
                               type="file"
@@ -799,9 +865,9 @@ export default function Sidebar({ isChatOpen }) {
                           type="button"
                           className="popup-btn popup-btn-danger"
                           onClick={handleSaveProfile}
-                          disabled={!draftName.trim()}
+                          disabled={!draftName.trim() || isSavingProfile}
                         >
-                          Save
+                          {isSavingProfile ? "Saving..." : "Save"}
                         </button>
                       </div>
                     </div>

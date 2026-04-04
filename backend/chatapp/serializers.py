@@ -42,7 +42,7 @@ class EmployeeLoginSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Employee
-        fields = ["id", "email", "name", "role", "canCreateGroups", "avatarUrl"]
+        fields = ["id", "email", "name", "role", "canCreateGroups", "avatarUrl", "phone", "bio"]
 
     def get_canCreateGroups(self, obj):
         return obj.role in {Employee.ROLE_ADMIN, Employee.ROLE_SUPERADMIN} or obj.can_create_groups

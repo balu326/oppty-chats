@@ -66,20 +66,44 @@ class ProfileView(APIView):
     authentication_classes = [SessionTokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
-    def patch(self, request):
-        avatar = request.FILES.get("avatar")
-        if not avatar:
-            return Response({"message": "No avatar file provided"}, status=status.HTTP_400_BAD_REQUEST)
+    def get(self, request):
+        return Response({
+            "success": True,
+            "employee": EmployeeLoginSerializer(request.user, context={"request": request}).data,
+        })
 
+    def patch(self, request):
         employee = request.user
-        if employee.avatar:
-            employee.avatar.delete(save=False)
-        employee.avatar = avatar
-        employee.save(update_fields=["avatar"])
+        update_fields = []
+
+        name = (request.data.get("name") or "").strip()
+        if name:
+            employee.name = name
+            update_fields.append("name")
+
+        phone = request.data.get("phone")
+        if phone is not None:
+            employee.phone = phone.strip()
+            update_fields.append("phone")
+
+        bio = request.data.get("bio")
+        if bio is not None:
+            employee.bio = bio.strip()
+            update_fields.append("bio")
+
+        avatar = request.FILES.get("avatar")
+        if avatar:
+            if employee.avatar:
+                employee.avatar.delete(save=False)
+            employee.avatar = avatar
+            update_fields.append("avatar")
+
+        if update_fields:
+            employee.save(update_fields=update_fields)
 
         return Response({
             "success": True,
-            "avatarUrl": request.build_absolute_uri(employee.avatar.url),
+            "employee": EmployeeLoginSerializer(employee, context={"request": request}).data,
         })
 
 

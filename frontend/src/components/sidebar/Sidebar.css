@@ -809,3 +809,28 @@
     bottom: 68px;
   }
 }
+
+.profile-photo-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-photo-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border, #e0e0e0);
+}
+
+.profile-file-input {
+  display: none;
+}
+
+.sidebar-profile-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
