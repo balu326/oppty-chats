@@ -92,6 +92,10 @@ export default function ChatPage() {
   const [showEmojiTray, setShowEmojiTray] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [websocketAvailable, setWebsocketAvailable] = useState(true);
+  // Selection & forward state
+  const [selectedMsgs, setSelectedMsgs] = useState(new Set());
+  const [showForwardModal, setShowForwardModal] = useState(false);
+  const [forwardTargetId, setForwardTargetId] = useState("");
   const fileInputRef = useRef(null);
   const videoInputRef = useRef(null);
   const documentInputRef = useRef(null);
@@ -752,6 +756,34 @@ export default function ChatPage() {
     }
   };
 
+  const toggleSelectMsg = (id) => {
+    setSelectedMsgs(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedMsgs(new Set());
+
+  const handleForward = () => {
+    if (selectedMsgs.size === 0 || !forwardTargetId) return;
+    const auth = getAuthUser();
+    const texts = [...selectedMsgs].map(id => {
+      for (const g of groups) {
+        const m = g.messages.find(msg => String(msg.id) === String(id));
+        if (m) return m.text;
+      }
+      return "";
+    }).filter(Boolean);
+
+    texts.forEach(text => {
+      sendMessage(forwardTargetId, `↪ ${text}`);
+    });
+    setShowForwardModal(false);
+    clearSelection();
+  };
+
   return (
     <div className="chat">
       <header className="chatHeader">
@@ -822,7 +854,9 @@ export default function ChatPage() {
               <button type="button" className="chatOptionsItem" onClick={handleOpenChatInfo}>
                 View chat info
               </button>
-
+              <button type="button" className="chatOptionsItem" onClick={() => { setSelectedMsgs(new Set()); setShowOptionsMenu(false); if (groups.flatMap(g=>g.messages).length > 0) toggleSelectMsg(String(groups[0]?.messages[0]?.id)); }}>
+                Select messages
+              </button>
               <button type="button" className="chatOptionsItem" onClick={handleCloseSearch}>
                 Clear search
               </button>
@@ -1046,15 +1080,7 @@ export default function ChatPage() {
         {!websocketAvailable && (
           <div className="loadingMessages">Live updates unavailable. Using refresh polling.</div>
         )}
-        
-        {/* Debug: Log chat messages */}
-        {console.log('📋 Chat messages for rendering:', { 
-          chatId: chat?.id, 
-          messageCount: chat?.messages?.length,
-          hasGroups: groups.length > 0,
-          groups: groups 
-        })}
-        
+
         {groups.map((g) => (
           <div key={g.day}>
             <div className="dayChip">{g.day}</div>
@@ -1071,25 +1097,35 @@ export default function ChatPage() {
                   m.text?.toLowerCase().includes(searchTerm.toLowerCase());
                 const matchedIndex = matchedMessages.findIndex((item) => item.id === m.id);
                 const isActiveMatched = matchedIndex === activeSearchIndex;
+                const isSelected = selectedMsgs.has(String(m.id));
 
                 return (
                   <div
                     key={m.id}
-                    ref={(el) => {
-                      messageRefs.current[m.id] = el;
-                    }}
-                    className={isActiveMatched ? "chatMatchedMessageActive" : ""}
+                    ref={(el) => { messageRefs.current[m.id] = el; }}
+                    className={`msgSelectRow ${isActiveMatched ? "chatMatchedMessageActive" : ""} ${isSelected ? "msgSelected" : ""}`}
+                    onClick={() => selectedMsgs.size > 0 && toggleSelectMsg(String(m.id))}
                   >
-                    <MessageBubble
-                      message={{
-                        ...m,
-                        text: isMatched ? (
-                          <HighlightText text={m.text} query={searchTerm} />
-                        ) : (
-                          m.text
-                        ),
-                      }}
-                    />
+                    {selectedMsgs.size > 0 && (
+                      <input
+                        type="checkbox"
+                        className="msgCheckbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelectMsg(String(m.id))}
+                        onClick={e => e.stopPropagation()}
+                      />
+                    )}
+                    <div style={{ flex: 1 }}>
+                      <MessageBubble
+                        message={{
+                          ...m,
+                          text: isMatched ? (
+                            <HighlightText text={m.text} query={searchTerm} />
+                          ) : m.text,
+                        }}
+                        onLongPress={() => toggleSelectMsg(String(m.id))}
+                      />
+                    </div>
                   </div>
                 );
               })}
@@ -1141,6 +1177,44 @@ export default function ChatPage() {
       {blockedByAdminsOnly && (
         <div className="adminsOnlyBanner">
           🔒 Only admins can send messages in this group
+        </div>
+      )}
+
+      {/* Selection toolbar */}
+      {selectedMsgs.size > 0 && (
+        <div className="selectionToolbar">
+          <button className="selToolBtn" onClick={clearSelection}>✕ Cancel</button>
+          <span className="selToolCount">{selectedMsgs.size} selected</span>
+          <button className="selToolBtn primary" onClick={() => setShowForwardModal(true)}>↪ Forward</button>
+        </div>
+      )}
+
+      {/* Forward modal */}
+      {showForwardModal && (
+        <div className="meetModalOverlay" onClick={() => setShowForwardModal(false)}>
+          <div className="meetModal meetModalSm" onClick={e => e.stopPropagation()}>
+            <div className="meetModalHeader">
+              <div className="meetModalHeaderLeft"><span>↪</span><h2>Forward to</h2></div>
+              <button className="meetModalClose" onClick={() => setShowForwardModal(false)}>✕</button>
+            </div>
+            <div style={{ padding: "16px 24px 24px", display: "flex", flexDirection: "column", gap: 12 }}>
+              <select
+                className="groupMemberSelect"
+                value={forwardTargetId}
+                onChange={e => setForwardTargetId(e.target.value)}
+                style={{ height: 44, fontSize: 14 }}
+              >
+                <option value="">Select a chat…</option>
+                {chats.filter(c => c.id !== chatId).map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+                <button className="meetBtn meetBtnOutline" onClick={() => setShowForwardModal(false)}>Cancel</button>
+                <button className="meetBtn meetBtnPrimary" onClick={handleForward} disabled={!forwardTargetId}>Forward</button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
