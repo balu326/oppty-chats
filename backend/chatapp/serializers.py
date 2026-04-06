@@ -3,6 +3,21 @@ from rest_framework import serializers
 from .models import ChatGroup, Employee, Meeting, Message
 
 
+def _avatar_url(obj, request=None):
+    """Return avatar URL — handles both Cloudinary (absolute) and local (relative) storage."""
+    if not obj.avatar:
+        return None
+    try:
+        url = obj.avatar.url
+        if url.startswith("http"):
+            return url  # Cloudinary or any absolute URL
+        if request:
+            return request.build_absolute_uri(url)
+        return url
+    except Exception:
+        return None
+
+
 class GroupSummarySerializer(serializers.ModelSerializer):
     _id = serializers.CharField(source="pk", read_only=True)
     createdAt = serializers.DateTimeField(source="created_at", read_only=True)
@@ -27,12 +42,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
         return obj.role in {Employee.ROLE_ADMIN, Employee.ROLE_SUPERADMIN} or obj.can_create_groups
 
     def get_avatarUrl(self, obj):
-        request = self.context.get("request")
-        if obj.avatar and request:
-            return request.build_absolute_uri(obj.avatar.url)
-        if obj.avatar:
-            return obj.avatar.url
-        return None
+        return _avatar_url(obj, self.context.get("request"))
 
 
 class EmployeeLoginSerializer(serializers.ModelSerializer):
@@ -48,12 +58,7 @@ class EmployeeLoginSerializer(serializers.ModelSerializer):
         return obj.role in {Employee.ROLE_ADMIN, Employee.ROLE_SUPERADMIN} or obj.can_create_groups
 
     def get_avatarUrl(self, obj):
-        request = self.context.get("request")
-        if obj.avatar and request:
-            return request.build_absolute_uri(obj.avatar.url)
-        if obj.avatar:
-            return obj.avatar.url
-        return None
+        return _avatar_url(obj, self.context.get("request"))
 
 
 class GroupMemberSerializer(serializers.ModelSerializer):
@@ -93,12 +98,7 @@ class MessageSenderSerializer(serializers.ModelSerializer):
         fields = ["_id", "name", "email", "role", "avatarUrl"]
 
     def get_avatarUrl(self, obj):
-        request = self.context.get("request")
-        if obj.avatar and request:
-            return request.build_absolute_uri(obj.avatar.url)
-        if obj.avatar:
-            return obj.avatar.url
-        return None
+        return _avatar_url(obj, self.context.get("request"))
 
 
 class MessageSerializer(serializers.ModelSerializer):
@@ -114,21 +114,13 @@ class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         fields = [
-            "_id",
-            "chatId",
-            "sender",
-            "receiver",
-            "text",
-            "content",
-            "attachment",
-            "createdAt",
-            "timestamp",
+            "_id", "chatId", "sender", "receiver",
+            "text", "content", "attachment", "createdAt", "timestamp",
         ]
 
     def get_attachment(self, obj):
         if not obj.attachment_type:
             return None
-
         return {
             "type": obj.attachment_type,
             "url": obj.attachment_url,

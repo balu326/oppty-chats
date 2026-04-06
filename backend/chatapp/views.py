@@ -553,18 +553,23 @@ class MessageUploadView(APIView):
         except Employee.DoesNotExist:
             return Response({"message": "Sender not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        upload_dir = Path(settings.MEDIA_ROOT) / "uploads"
-        upload_dir.mkdir(parents=True, exist_ok=True)
-        storage = FileSystemStorage(location=upload_dir, base_url=f"{settings.MEDIA_URL}uploads/")
-        stored_name = storage.save(upload.name, upload)
-
         attachment_type = Message.ATTACHMENT_DOCUMENT
         if upload.content_type.startswith("image/"):
             attachment_type = Message.ATTACHMENT_PHOTO
         elif upload.content_type.startswith("video/"):
             attachment_type = Message.ATTACHMENT_VIDEO
 
-        attachment_url = request.build_absolute_uri(storage.url(stored_name))
+        # Use Django default storage — local in dev, Cloudinary in production
+        from django.core.files.storage import default_storage
+        from django.core.files.base import ContentFile
+
+        file_path = f"uploads/{upload.name}"
+        saved_path = default_storage.save(file_path, ContentFile(upload.read()))
+        file_url = default_storage.url(saved_path)
+
+        # Make absolute if relative
+        if not file_url.startswith("http"):
+            file_url = request.build_absolute_uri(file_url)
 
         message = Message.objects.create(
             chat_id=chat_id,
@@ -572,13 +577,13 @@ class MessageUploadView(APIView):
             receiver=_receiver_from_chat_id(chat_id, sender.id),
             text="",
             attachment_type=attachment_type,
-            attachment_url=attachment_url,
+            attachment_url=file_url,
             attachment_file_name=upload.name,
             attachment_file_size=upload.size,
             attachment_mime_type=upload.content_type,
         )
         broadcast_message(message)
-        return Response({"success": True, "message": MessageSerializer(message, context={"request": request}).data, "fileUrl": attachment_url})
+        return Response({"success": True, "message": MessageSerializer(message, context={"request": request}).data, "fileUrl": file_url})
 
 
 class MessageLinkView(APIView):
