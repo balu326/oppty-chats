@@ -21,25 +21,30 @@ export default function MeetPage() {
   const auth = getAuthUser();
   const [meetings, setMeetings] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showSchedule, setShowSchedule] = useState(false);
   const [form, setForm] = useState({ title: "", scheduledAt: "", invitees: [], meetLink: generateMeetLink() });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [inviteTab, setInviteTab] = useState("all"); // "all" | group id
 
   useEffect(() => { fetchAll(); }, []);
 
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [mr, er] = await Promise.all([
+      const [mr, er, gr] = await Promise.all([
         fetch(`${API_URL}/meetings`, { headers: { Authorization: `Bearer ${auth?.token}` } }),
         fetch(`${API_URL}/auth/employees`, { headers: { Authorization: `Bearer ${auth?.token}` } }),
+        fetch(`${API_URL}/groups`, { headers: { Authorization: `Bearer ${auth?.token}` } }),
       ]);
       const md = await mr.json();
       const ed = await er.json();
+      const gd = await gr.json();
       if (md.success) setMeetings(md.meetings);
       if (ed.success) setEmployees(ed.employees.filter(e => String(e._id) !== String(auth?.employeeId)));
+      if (gd.success) setGroups(gd.groups);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -220,21 +225,78 @@ export default function MeetPage() {
 
               {employees.length > 0 && (
                 <div className="meetFormGroup">
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <label className="meetFormLabel">Invite people ({form.invitees.length} selected)</label>
+                  {/* Tab bar: All + each group */}
+                  <div className="meetInviteTabBar">
                     <button
                       type="button"
-                      style={{ fontSize: 12, fontWeight: 600, color: "#1a73e8", background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}
-                      onClick={() => setForm(f => ({
-                        ...f,
-                        invitees: f.invitees.length === employees.length ? [] : employees.map(e => e._id)
-                      }))}
+                      className={`meetInviteTab ${inviteTab === "all" ? "active" : ""}`}
+                      onClick={() => setInviteTab("all")}
+                    >All</button>
+                    {groups.map(g => (
+                      <button
+                        key={g._id}
+                        type="button"
+                        className={`meetInviteTab ${inviteTab === g._id ? "active" : ""}`}
+                        onClick={() => setInviteTab(g._id)}
+                      >
+                        {g.name}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Header row */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                    <label className="meetFormLabel">
+                      {inviteTab === "all"
+                        ? `All members (${form.invitees.length} selected)`
+                        : `${groups.find(g => g._id === inviteTab)?.name} (${
+                            (groups.find(g => g._id === inviteTab)?.members || [])
+                              .filter(m => form.invitees.includes(String(m._id))).length
+                          } selected)`
+                      }
+                    </label>
+                    <button
+                      type="button"
+                      className="meetSelectAllBtn"
+                      onClick={() => {
+                        if (inviteTab === "all") {
+                          setForm(f => ({
+                            ...f,
+                            invitees: f.invitees.length === employees.length ? [] : employees.map(e => e._id),
+                          }));
+                        } else {
+                          const grp = groups.find(g => g._id === inviteTab);
+                          const memberIds = (grp?.members || []).map(m => String(m._id)).filter(id => id !== String(auth?.employeeId));
+                          const allSelected = memberIds.every(id => form.invitees.includes(id));
+                          setForm(f => ({
+                            ...f,
+                            invitees: allSelected
+                              ? f.invitees.filter(id => !memberIds.includes(id))
+                              : [...new Set([...f.invitees, ...memberIds])],
+                          }));
+                        }
+                      }}
                     >
-                      {form.invitees.length === employees.length ? "Deselect all" : "Select all"}
+                      {inviteTab === "all"
+                        ? (form.invitees.length === employees.length ? "Deselect all" : "Select all")
+                        : (() => {
+                            const grp = groups.find(g => g._id === inviteTab);
+                            const memberIds = (grp?.members || []).map(m => String(m._id)).filter(id => id !== String(auth?.employeeId));
+                            return memberIds.every(id => form.invitees.includes(id)) ? "Deselect group" : "Select group";
+                          })()
+                      }
                     </button>
                   </div>
+
+                  {/* Employee list filtered by tab */}
                   <div className="meetInviteList">
-                    {employees.map(emp => (
+                    {(inviteTab === "all"
+                      ? employees
+                      : employees.filter(emp => {
+                          const grp = groups.find(g => g._id === inviteTab);
+                          return (grp?.members || []).some(m => String(m._id) === String(emp._id));
+                        })
+                    ).map(emp => (
                       <label key={emp._id} className="meetInviteItem">
                         <input type="checkbox" checked={form.invitees.includes(emp._id)} onChange={() => toggleInvitee(emp._id)} />
                         <div className="meetInviteAvatar">{emp.name.slice(0, 1).toUpperCase()}</div>

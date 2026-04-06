@@ -589,3 +589,50 @@
   .meetModal { border-radius: 20px 20px 0 0; }
   .meetModalOverlay { align-items: flex-end; padding: 0; }
 }
+
+/* ── Invite tabs ─────────────────────────────────────────────────────────── */
+.meetInviteTabBar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.meetInviteTab {
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1.5px solid #dadce0;
+  background: #fff;
+  color: #5f6368;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+
+.meetInviteTab:hover {
+  border-color: #1a73e8;
+  color: #1a73e8;
+  background: #f1f3f4;
+}
+
+.meetInviteTab.active {
+  background: #e8f0fe;
+  border-color: #1a73e8;
+  color: #1a73e8;
+}
+
+.meetSelectAllBtn {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a73e8;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: background 0.1s;
+}
+
+.meetSelectAllBtn:hover { background: #e8f0fe; }
