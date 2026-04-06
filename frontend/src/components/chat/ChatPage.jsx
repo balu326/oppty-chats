@@ -61,6 +61,7 @@ export default function ChatPage() {
   const {
     getChatById,
     sendMessage,
+    deleteMessage,
     updateChatName,
     deleteChat,
     toggleBlockChat,
@@ -98,6 +99,10 @@ export default function ChatPage() {
   const [forwardTargetId, setForwardTargetId] = useState("");
   // Reply state
   const [replyTo, setReplyTo] = useState(null);
+  // Reactions — stored in localStorage, keyed by chatId
+  const [reactionsMap, setReactionsMap] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(`reactions_${chatId}`) || "{}"); } catch { return {}; }
+  });
   // Typing indicator
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef(null);
@@ -168,7 +173,7 @@ export default function ChatPage() {
     lastMessageSentRef.current = { text: v, timestamp: Date.now() };
     lastMessageSentTimeRef.current = Date.now(); // Track when we sent
     
-    sendMessage(chat.id, v);
+    sendMessage(chat.id, v, replyTo);
     setText("");
     setReplyTo(null);
     
@@ -206,6 +211,13 @@ export default function ChatPage() {
   useEffect(() => {
     if (chatId) markRead(chatId);
   }, [chatId, chat?.messages?.length]);
+
+  // Reset reactions when chat changes
+  useEffect(() => {
+    try {
+      setReactionsMap(JSON.parse(localStorage.getItem(`reactions_${chatId}`) || "{}"));
+    } catch { setReactionsMap({}); }
+  }, [chatId]);
 
   // Always reload messages from backend when chatId changes or component mount
   const lastLoadedChatIdRef = useRef(null);
@@ -791,28 +803,24 @@ export default function ChatPage() {
   };
 
   const handleDeleteMessage = (msgId) => {
-    // Force reload to remove from UI
-    lastLoadedChatIdRef.current = null;
+    deleteMessage(chatId, msgId);
   };
 
   const handleReact = (msgId, emoji) => {
     const key = `reactions_${chatId}`;
     const stored = JSON.parse(localStorage.getItem(key) || "{}");
     const userId = getAuthUser()?.employeeId || "me";
-    if (!stored[msgId]) stored[msgId] = {};
-    if (!stored[msgId][emoji]) stored[msgId][emoji] = [];
-    const idx = stored[msgId][emoji].indexOf(userId);
-    if (idx >= 0) stored[msgId][emoji].splice(idx, 1);
-    else stored[msgId][emoji].push(userId);
+    const msgKey = String(msgId);
+    if (!stored[msgKey]) stored[msgKey] = {};
+    if (!stored[msgKey][emoji]) stored[msgKey][emoji] = [];
+    const idx = stored[msgKey][emoji].indexOf(userId);
+    if (idx >= 0) stored[msgKey][emoji].splice(idx, 1);
+    else stored[msgKey][emoji].push(userId);
     localStorage.setItem(key, JSON.stringify(stored));
-    setReplyTo(r => r); // nudge re-render
+    setReactionsMap({ ...stored });
   };
 
-  const getReactions = (msgId) => {
-    const key = `reactions_${chatId}`;
-    const stored = JSON.parse(localStorage.getItem(key) || "{}");
-    return stored[String(msgId)] || {};
-  };
+  const getReactions = (msgId) => reactionsMap[String(msgId)] || {};
 
   return (
     <div className="chat">

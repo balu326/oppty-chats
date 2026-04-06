@@ -397,7 +397,8 @@ function reducer(state, action) {
         sender: "me",
         text,
         createdAt: Date.now(),
-        tempId: `temp_${Date.now()}`
+        tempId: `temp_${Date.now()}`,
+        replyTo: action.replyTo || null,
       };
 
       console.log('✨ Created new message:', {
@@ -602,6 +603,15 @@ function reducer(state, action) {
       return { chats };
     }
 
+    case "DELETE_MESSAGE": {
+      const next = state.chats.map((chat) => {
+        if (String(chat.id) !== String(action.chatId)) return chat;
+        return { ...chat, messages: chat.messages.filter(m => String(m.id) !== String(action.msgId)) };
+      });
+      saveChats(next);
+      return { chats: next };
+    }
+
     case "TOGGLE_BLOCK_CHAT": {
       if (!isSystemAdmin()) return state;
       const next = state.chats.map((chat) =>
@@ -734,7 +744,8 @@ export function ChatProvider({ children }) {
       getChatById: (id) => state.chats.find((c) => String(c.id) === String(id)),
       getUnreadCount,
       markRead,
-      sendMessage: (chatId, text) => dispatch({ type: "SEND", chatId, text }),
+      sendMessage: (chatId, text, replyTo = null) => dispatch({ type: "SEND", chatId, text, replyTo }),
+      deleteMessage: (chatId, msgId) => dispatch({ type: "DELETE_MESSAGE", chatId, msgId }),
       updateChatName: (chatId, name) =>
         dispatch({ type: "UPDATE_CHAT_NAME", chatId, name }),
       addContact: (payload) => dispatch({ type: "ADD_CONTACT", payload }),
