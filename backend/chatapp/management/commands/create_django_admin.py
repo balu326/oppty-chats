@@ -12,7 +12,13 @@ class Command(BaseCommand):
         email = os.getenv("DJANGO_ADMIN_EMAIL", "admin@oppty.com")
 
         if User.objects.filter(username=username).exists():
-            self.stdout.write(f"Django admin '{username}' already exists, skipping.")
+            # Always update password to ensure it's correct
+            u = User.objects.get(username=username)
+            u.set_password(password)
+            u.is_staff = True
+            u.is_superuser = True
+            u.save()
+            self.stdout.write(f"Django admin '{username}' password updated.")
             return
 
         User.objects.create_superuser(username=username, email=email, password=password)
