@@ -115,13 +115,23 @@ SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = not DEBUG
 
 frontend_url = os.getenv("FRONTEND_URL")
+backend_url = os.getenv("RENDER_EXTERNAL_URL", "")  # Render sets this automatically
 extra_origins = [o.strip() for o in os.getenv("CORS_ORIGIN", "").split(",") if o.strip()]
 if frontend_url:
     extra_origins.append(frontend_url)
+if backend_url:
+    extra_origins.append(backend_url)
 
 unique_origins = list(dict.fromkeys(o for o in extra_origins if o))
 
-CSRF_TRUSTED_ORIGINS = unique_origins
+CSRF_TRUSTED_ORIGINS = unique_origins if unique_origins else []
+
+# Always trust the backend's own domain for Django admin
+allowed_hosts_list = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "").split(",") if h.strip()]
+for host in allowed_hosts_list:
+    origin = f"https://{host}"
+    if origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(origin)
 
 if unique_origins:
     CORS_ALLOWED_ORIGINS = unique_origins
