@@ -75,6 +75,21 @@ class ChatGroup(models.Model):
         return self.name
 
 
+class Meeting(models.Model):
+    title = models.CharField(max_length=255)
+    meet_link = models.CharField(max_length=500)
+    scheduled_at = models.DateTimeField()
+    created_by = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="meetings")
+    invitees = models.ManyToManyField(Employee, related_name="invited_meetings", blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["scheduled_at"]
+
+    def __str__(self):
+        return f"{self.title} @ {self.scheduled_at}"
+
+
 class Message(models.Model):
     ATTACHMENT_PHOTO = "photo"
     ATTACHMENT_VIDEO = "video"

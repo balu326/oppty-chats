@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import ChatGroup, Employee, Message
+from .models import ChatGroup, Employee, Meeting, Message
 
 
 @admin.register(Employee)
@@ -15,6 +15,13 @@ class ChatGroupAdmin(admin.ModelAdmin):
     list_display = ("name", "created_by", "created_at")
     search_fields = ("name",)
     filter_horizontal = ("members",)
+
+
+@admin.register(Meeting)
+class MeetingAdmin(admin.ModelAdmin):
+    list_display = ("title", "created_by", "scheduled_at", "created_at")
+    search_fields = ("title",)
+    filter_horizontal = ("invitees",)
 
 
 @admin.register(Message)

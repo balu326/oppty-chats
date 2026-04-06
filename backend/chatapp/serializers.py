@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import ChatGroup, Employee, Message
+from .models import ChatGroup, Employee, Meeting, Message
 
 
 class GroupSummarySerializer(serializers.ModelSerializer):
@@ -136,3 +136,21 @@ class MessageSerializer(serializers.ModelSerializer):
             "fileSize": obj.attachment_file_size,
             "mimeType": obj.attachment_mime_type,
         }
+
+
+class MeetingSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(source="pk", read_only=True)
+    createdBy = serializers.SerializerMethodField()
+    invitees = serializers.SerializerMethodField()
+    scheduledAt = serializers.DateTimeField(source="scheduled_at")
+    createdAt = serializers.DateTimeField(source="created_at", read_only=True)
+
+    class Meta:
+        model = Meeting
+        fields = ["id", "title", "meet_link", "scheduledAt", "createdBy", "invitees", "createdAt"]
+
+    def get_createdBy(self, obj):
+        return {"id": str(obj.created_by.pk), "name": obj.created_by.name, "email": obj.created_by.email}
+
+    def get_invitees(self, obj):
+        return [{"id": str(e.pk), "name": e.name, "email": e.email} for e in obj.invitees.all()]

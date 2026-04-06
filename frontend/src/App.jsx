@@ -6,6 +6,7 @@ import EmptyState from "./components/chat/EmptyState.jsx";
 import ChatPage from "./components/chat/ChatPage.jsx";
 import EmployeeLogin from "./pages/auth/EmployeeLogin.jsx";
 import SuperAdminDashboard from "./pages/admin/SuperAdminDashboard.jsx";
+import MeetPage from "./pages/meet/MeetPage.jsx";
 import "./App.css";
 
 function isAuthenticated() {
@@ -35,20 +36,17 @@ function ProtectedApp() {
       <main className={`main-content ${isWorkspaceRoute ? "main-content-workspace" : "main-content-scroll"}`}>
         <Routes>
           <Route path="/" element={<Navigate to="/chats" replace />} />
-
           <Route path="/chats" element={<ChatsLayout mode="dm" />}>
             <Route index element={<EmptyState />} />
             <Route path=":chatId" element={<ChatPage />} />
           </Route>
-
           <Route path="/groups" element={<ChatsLayout mode="group" />}>
             <Route index element={<EmptyState />} />
             <Route path=":chatId" element={<ChatPage />} />
           </Route>
-
+          <Route path="/meet" element={<MeetPage />} />
           <Route path="/admin" element={<Navigate to="/superadmin" replace />} />
           <Route path="/superadmin" element={<SuperAdminDashboard />} />
-
           <Route path="*" element={<Navigate to="/chats" replace />} />
         </Routes>
       </main>

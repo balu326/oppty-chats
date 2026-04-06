@@ -10,9 +10,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .authentication import SessionTokenAuthentication
-from .models import ChatGroup, Employee, Message
+from .models import ChatGroup, Employee, Meeting, Message
 from .permissions import IsAdminOrSuperAdmin, IsSuperAdmin, IsSuperAdminOrReadOnly
-from .serializers import EmployeeLoginSerializer, EmployeeSerializer, GroupSerializer, MessageSerializer
+from .serializers import EmployeeLoginSerializer, EmployeeSerializer, GroupSerializer, MeetingSerializer, MessageSerializer
 from .services import broadcast_message
 
 
@@ -105,6 +105,46 @@ class ProfileView(APIView):
             "success": True,
             "employee": EmployeeLoginSerializer(employee, context={"request": request}).data,
         })
+
+
+class MeetingView(APIView):
+    authentication_classes = [SessionTokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        meetings = Meeting.objects.filter(
+            models.Q(created_by=request.user) | models.Q(invitees=request.user)
+        ).distinct().prefetch_related("invitees").select_related("created_by")
+        return Response({"success": True, "meetings": MeetingSerializer(meetings, many=True).data})
+
+    def post(self, request):
+        title = (request.data.get("title") or "").strip()
+        meet_link = (request.data.get("meetLink") or "").strip()
+        scheduled_at = request.data.get("scheduledAt")
+        invitee_ids = request.data.get("invitees", [])
+
+        if not title or not meet_link or not scheduled_at:
+            return Response({"message": "title, meetLink and scheduledAt are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        meeting = Meeting.objects.create(
+            title=title,
+            meet_link=meet_link,
+            scheduled_at=scheduled_at,
+            created_by=request.user,
+        )
+        if invitee_ids:
+            invitees = Employee.objects.filter(pk__in=invitee_ids)
+            meeting.invitees.set(invitees)
+
+        return Response({"success": True, "meeting": MeetingSerializer(meeting).data}, status=status.HTTP_201_CREATED)
+
+    def delete(self, request, meeting_id):
+        try:
+            meeting = Meeting.objects.get(pk=meeting_id, created_by=request.user)
+        except Meeting.DoesNotExist:
+            return Response({"message": "Meeting not found"}, status=status.HTTP_404_NOT_FOUND)
+        meeting.delete()
+        return Response({"success": True})
 
 
 class HealthView(APIView):
