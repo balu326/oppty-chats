@@ -11,6 +11,9 @@ function ProfileAvatar({ photo, name, size = 36 }) {
   const [broken, setBroken] = React.useState(false);
   const initial = (name || "U").slice(0, 1).toUpperCase();
 
+  // Reset broken state when photo URL changes
+  React.useEffect(() => { setBroken(false); }, [photo]);
+
   if (!photo || broken) {
     return (
       <span
