@@ -220,7 +220,19 @@ export default function MeetPage() {
 
               {employees.length > 0 && (
                 <div className="meetFormGroup">
-                  <label className="meetFormLabel">Invite people ({form.invitees.length} selected)</label>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <label className="meetFormLabel">Invite people ({form.invitees.length} selected)</label>
+                    <button
+                      type="button"
+                      style={{ fontSize: 12, fontWeight: 600, color: "#1a73e8", background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}
+                      onClick={() => setForm(f => ({
+                        ...f,
+                        invitees: f.invitees.length === employees.length ? [] : employees.map(e => e._id)
+                      }))}
+                    >
+                      {form.invitees.length === employees.length ? "Deselect all" : "Select all"}
+                    </button>
+                  </div>
                   <div className="meetInviteList">
                     {employees.map(emp => (
                       <label key={emp._id} className="meetInviteItem">
