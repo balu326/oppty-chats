@@ -132,6 +132,20 @@
   box-shadow: var(--shadow-sm);
 }
 
+.avatarInitials {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: #e67e22;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .chatRowBody {
   min-width: 0;
   flex: 1;
