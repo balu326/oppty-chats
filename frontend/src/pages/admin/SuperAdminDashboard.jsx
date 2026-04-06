@@ -500,25 +500,3 @@ export default function SuperAdminDashboard() {
   );
 }
 
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
-
-const TABS = [
-  { id: "overview", label: "Overview", mobile: "Home" },
-  { id: "employees", label: "Employees", mobile: "People" },
-  { id: "groups", label: "Groups", mobile: "Groups" },
-  { id: "messages", label: "Messages", mobile: "Feed" },
-];
-
-function formatDate(value) {
-  return value ? new Date(value).toLocaleDateString() : "-";
-}
-
-function formatDateTime(value) {
-  return value ? new Date(value).toLocaleString() : "-";
-}
-
-function preview(message) {
-  return (message.content || message.text || "No content").trim() || "No content";
-}
-
