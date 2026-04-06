@@ -12,8 +12,7 @@ function generateMeetLink() {
 
 function formatDT(v) {
   if (!v) return "";
-  const d = new Date(v);
-  return d.toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  return new Date(v).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
 function isPast(v) { return v && new Date(v) < new Date(); }
@@ -61,7 +60,7 @@ export default function MeetPage() {
         setShowSchedule(false);
         setForm({ title: "", scheduledAt: "", invitees: [], meetLink: generateMeetLink() });
       } else { setError(data.message || "Failed to schedule"); }
-    } catch (err) { setError("Network error"); }
+    } catch { setError("Network error"); }
     finally { setSaving(false); }
   };
 
@@ -81,27 +80,24 @@ export default function MeetPage() {
 
   const upcoming = meetings.filter(m => !isPast(m.scheduledAt));
   const past = meetings.filter(m => isPast(m.scheduledAt));
+  const instantLink = generateMeetLink();
 
   return (
     <div className="meetPage">
-      {/* Header */}
+
+      {/* ── Sticky header ── */}
       <div className="meetHeader">
         <div className="meetHeaderLeft">
           <div className="meetLogo">
-            <svg viewBox="0 0 48 48" width="32" height="32">
-              <path fill="#4285F4" d="M44 24c0-1.3-.1-2.5-.3-3.7H24v7h11.3c-.5 2.5-1.9 4.6-4 6v5h6.5C41.2 35 44 30 44 24z"/>
-              <path fill="#34A853" d="M24 44c5.5 0 10.1-1.8 13.5-4.9l-6.5-5c-1.8 1.2-4.1 1.9-7 1.9-5.4 0-9.9-3.6-11.5-8.5H5.8v5.2C9.1 39.8 16 44 24 44z"/>
-              <path fill="#FBBC05" d="M12.5 27.5c-.4-1.2-.7-2.5-.7-3.8s.2-2.6.7-3.8v-5.2H5.8C4.6 17.1 4 20.5 4 24s.6 6.9 1.8 9.3l6.7-5.8z"/>
-              <path fill="#EA4335" d="M24 12.5c3 0 5.7 1 7.8 3l5.8-5.8C34.1 6.5 29.4 4.5 24 4.5 16 4.5 9.1 8.7 5.8 15.2l6.7 5.2c1.6-4.9 6.1-7.9 11.5-7.9z"/>
-            </svg>
+            <GoogleMeetLogo size={26} />
           </div>
           <div>
             <h1 className="meetTitle">Google Meet</h1>
-            <p className="meetSubtitle">Video calls for your team</p>
+            <p className="meetSubtitle">Premium video calls for your team</p>
           </div>
         </div>
         <div className="meetHeaderActions">
-          <a href={generateMeetLink()} target="_blank" rel="noopener noreferrer" className="meetBtn meetBtnOutline">
+          <a href={instantLink} target="_blank" rel="noopener noreferrer" className="meetBtn meetBtnOutline">
             🔗 Join with link
           </a>
           <button className="meetBtn meetBtnPrimary" onClick={() => setShowSchedule(true)}>
@@ -110,53 +106,87 @@ export default function MeetPage() {
         </div>
       </div>
 
-      {/* Instant join card */}
-      <div className="meetInstantCard">
-        <div className="meetInstantLeft">
-          <div className="meetInstantIcon">📹</div>
-          <div>
-            <div className="meetInstantTitle">Start an instant meeting</div>
-            <div className="meetInstantSub">Share the link with your team to join</div>
+      {/* ── Hero ── */}
+      <div className="meetHero">
+        <div className="meetHeroText">
+          <h2>Connect with your team, anywhere</h2>
+          <p>High-quality video calls, screen sharing, and real-time collaboration.</p>
+          <div className="meetHeroActions">
+            <a href={instantLink} target="_blank" rel="noopener noreferrer" className="meetBtn meetBtnWhite">
+              📹 Start instant meeting
+            </a>
+            <button className="meetBtn meetBtnGhost" onClick={() => setShowSchedule(true)}>
+              📅 Schedule for later
+            </button>
           </div>
         </div>
-        <a href={generateMeetLink()} target="_blank" rel="noopener noreferrer" className="meetBtn meetBtnGreen">
-          Start now
-        </a>
+        <div className="meetHeroIllustration">🎥</div>
       </div>
 
-      {loading ? (
-        <div className="meetLoading">Loading meetings…</div>
-      ) : (
-        <>
-          {/* Upcoming */}
-          <div className="meetSection">
-            <div className="meetSectionTitle">Upcoming meetings</div>
-            {upcoming.length === 0 ? (
-              <div className="meetEmpty">No upcoming meetings. Schedule one!</div>
-            ) : (
-              <div className="meetList">
-                {upcoming.map(m => (
-                  <MeetCard key={m.id} meeting={m} auth={auth} onDelete={handleDelete} />
-                ))}
+      <div className="meetBody">
+
+        {/* ── Stats ── */}
+        <div className="meetStats">
+          <div className="meetStatCard">
+            <div className="meetStatIcon blue">📅</div>
+            <div>
+              <div className="meetStatNum">{upcoming.length}</div>
+              <div className="meetStatLabel">Upcoming meetings</div>
+            </div>
+          </div>
+          <div className="meetStatCard">
+            <div className="meetStatIcon green">✅</div>
+            <div>
+              <div className="meetStatNum">{past.length}</div>
+              <div className="meetStatLabel">Past meetings</div>
+            </div>
+          </div>
+          <div className="meetStatCard">
+            <div className="meetStatIcon orange">👥</div>
+            <div>
+              <div className="meetStatNum">{employees.length + 1}</div>
+              <div className="meetStatLabel">Team members</div>
+            </div>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="meetLoading">Loading meetings…</div>
+        ) : (
+          <>
+            {/* ── Upcoming ── */}
+            <div className="meetSection">
+              <div className="meetSectionHeader">
+                <div className="meetSectionTitle">Upcoming meetings</div>
+              </div>
+              {upcoming.length === 0 ? (
+                <div className="meetEmpty">
+                  <div style={{ fontSize: 32, marginBottom: 8 }}>📭</div>
+                  No upcoming meetings — schedule one to get started
+                </div>
+              ) : (
+                <div className="meetList">
+                  {upcoming.map(m => <MeetCard key={m.id} meeting={m} auth={auth} onDelete={handleDelete} />)}
+                </div>
+              )}
+            </div>
+
+            {/* ── Past ── */}
+            {past.length > 0 && (
+              <div className="meetSection">
+                <div className="meetSectionHeader">
+                  <div className="meetSectionTitle">Past meetings</div>
+                </div>
+                <div className="meetList">
+                  {past.map(m => <MeetCard key={m.id} meeting={m} auth={auth} onDelete={handleDelete} past />)}
+                </div>
               </div>
             )}
-          </div>
+          </>
+        )}
+      </div>
 
-          {/* Past */}
-          {past.length > 0 && (
-            <div className="meetSection">
-              <div className="meetSectionTitle">Past meetings</div>
-              <div className="meetList">
-                {past.map(m => (
-                  <MeetCard key={m.id} meeting={m} auth={auth} onDelete={handleDelete} past />
-                ))}
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Schedule modal */}
+      {/* ── Schedule modal ── */}
       {showSchedule && (
         <div className="meetModalOverlay" onClick={() => setShowSchedule(false)}>
           <div className="meetModal" onClick={e => e.stopPropagation()}>
@@ -165,24 +195,32 @@ export default function MeetPage() {
               <button className="meetModalClose" onClick={() => setShowSchedule(false)}>✕</button>
             </div>
             <form className="meetForm" onSubmit={handleSchedule}>
-              <label>
-                <span>Meeting title</span>
-                <input type="text" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. Weekly sync" required />
-              </label>
-              <label>
-                <span>Date & Time</span>
-                <input type="datetime-local" value={form.scheduledAt} onChange={e => setForm(f => ({ ...f, scheduledAt: e.target.value }))} required />
-              </label>
-              <label>
-                <span>Meet link (auto-generated)</span>
+              <div className="meetFormGroup">
+                <label className="meetFormLabel">Meeting title</label>
+                <input className="meetFormInput" type="text" value={form.title}
+                  onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                  placeholder="e.g. Weekly sync, Sprint review…" required />
+              </div>
+
+              <div className="meetFormGroup">
+                <label className="meetFormLabel">Date & Time</label>
+                <input className="meetFormInput" type="datetime-local" value={form.scheduledAt}
+                  onChange={e => setForm(f => ({ ...f, scheduledAt: e.target.value }))} required />
+              </div>
+
+              <div className="meetFormGroup">
+                <label className="meetFormLabel">Meet link</label>
                 <div className="meetLinkRow">
-                  <input type="text" value={form.meetLink} onChange={e => setForm(f => ({ ...f, meetLink: e.target.value }))} />
-                  <button type="button" className="meetRefreshBtn" onClick={() => setForm(f => ({ ...f, meetLink: generateMeetLink() }))} title="Generate new link">↻</button>
+                  <input className="meetFormInput" type="text" value={form.meetLink}
+                    onChange={e => setForm(f => ({ ...f, meetLink: e.target.value }))} />
+                  <button type="button" className="meetRefreshBtn"
+                    onClick={() => setForm(f => ({ ...f, meetLink: generateMeetLink() }))} title="Generate new link">↻</button>
                 </div>
-              </label>
+              </div>
+
               {employees.length > 0 && (
-                <div className="meetInviteSection">
-                  <span>Invite people</span>
+                <div className="meetFormGroup">
+                  <label className="meetFormLabel">Invite people ({form.invitees.length} selected)</label>
                   <div className="meetInviteList">
                     {employees.map(emp => (
                       <label key={emp._id} className="meetInviteItem">
@@ -197,10 +235,14 @@ export default function MeetPage() {
                   </div>
                 </div>
               )}
+
               {error && <div className="meetError">{error}</div>}
+
               <div className="meetFormActions">
                 <button type="button" className="meetBtn meetBtnOutline" onClick={() => setShowSchedule(false)}>Cancel</button>
-                <button type="submit" className="meetBtn meetBtnPrimary" disabled={saving}>{saving ? "Saving…" : "Schedule"}</button>
+                <button type="submit" className="meetBtn meetBtnPrimary" disabled={saving}>
+                  {saving ? "Scheduling…" : "Schedule meeting"}
+                </button>
               </div>
             </form>
           </div>
@@ -215,7 +257,7 @@ function MeetCard({ meeting, auth, onDelete, past }) {
   return (
     <div className={`meetCard ${past ? "meetCardPast" : ""}`}>
       <div className="meetCardLeft">
-        <div className="meetCardIcon">📅</div>
+        <div className="meetCardIconWrap">📅</div>
         <div>
           <div className="meetCardTitle">{meeting.title}</div>
           <div className="meetCardTime">{formatDT(meeting.scheduledAt)}</div>
@@ -235,11 +277,22 @@ function MeetCard({ meeting, auth, onDelete, past }) {
             Join
           </a>
         )}
-        <button className="meetCopyBtn" onClick={() => navigator.clipboard.writeText(meeting.meet_link)} title="Copy link">🔗</button>
+        <button className="meetIconBtn" onClick={() => navigator.clipboard.writeText(meeting.meet_link)} title="Copy link">🔗</button>
         {isOwner && (
-          <button className="meetDeleteBtn" onClick={() => onDelete(meeting.id)} title="Delete">🗑</button>
+          <button className="meetIconBtn danger" onClick={() => onDelete(meeting.id)} title="Delete">🗑</button>
         )}
       </div>
     </div>
+  );
+}
+
+function GoogleMeetLogo({ size = 28 }) {
+  return (
+    <svg viewBox="0 0 48 48" width={size} height={size}>
+      <path fill="#4285F4" d="M44 24c0-1.3-.1-2.5-.3-3.7H24v7h11.3c-.5 2.5-1.9 4.6-4 6v5h6.5C41.2 35 44 30 44 24z"/>
+      <path fill="#34A853" d="M24 44c5.5 0 10.1-1.8 13.5-4.9l-6.5-5c-1.8 1.2-4.1 1.9-7 1.9-5.4 0-9.9-3.6-11.5-8.5H5.8v5.2C9.1 39.8 16 44 24 44z"/>
+      <path fill="#FBBC05" d="M12.5 27.5c-.4-1.2-.7-2.5-.7-3.8s.2-2.6.7-3.8v-5.2H5.8C4.6 17.1 4 20.5 4 24s.6 6.9 1.8 9.3l6.7-5.8z"/>
+      <path fill="#EA4335" d="M24 12.5c3 0 5.7 1 7.8 3l5.8-5.8C34.1 6.5 29.4 4.5 24 4.5 16 4.5 9.1 8.7 5.8 15.2l6.7 5.2c1.6-4.9 6.1-7.9 11.5-7.9z"/>
+    </svg>
   );
 }
