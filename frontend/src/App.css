@@ -1374,3 +1374,194 @@
 }
 
 .selToolBtn.primary:hover { background: #e55f00; }
+
+/* ── Reply bar ───────────────────────────────────────────────────────────── */
+.replyBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: #f7f8fa;
+  border-top: 1px solid var(--border);
+  gap: 10px;
+}
+
+.replyBarContent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.replyBarLine {
+  width: 3px;
+  height: 36px;
+  background: var(--accent);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.replyBarName {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.replyBarText {
+  font-size: 12.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.replyBarClose {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+  border-radius: 50%;
+  transition: background 0.12s;
+}
+.replyBarClose:hover { background: #f0f0f0; }
+
+/* ── Reply preview in bubble ─────────────────────────────────────────────── */
+.replyPreview {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  margin-bottom: 4px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.replyPreview.mine { background: rgba(0,0,0,0.12); }
+.replyPreview.theirs { background: #f0f2f5; }
+
+.replyPreviewBar {
+  width: 3px;
+  border-radius: 3px;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.replyPreviewText { min-width: 0; }
+
+.replyPreviewName {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  display: block;
+}
+
+.replyPreviewMsg {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+/* ── Bubble context menu ─────────────────────────────────────────────────── */
+.bubbleMenu {
+  position: absolute;
+  z-index: 100;
+  background: #fff;
+  border: 1px solid #e8eaed;
+  border-radius: 14px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.14);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 150px;
+  animation: slideUp 0.15s ease;
+}
+
+.bubbleMenu.mine { right: 0; bottom: calc(100% + 6px); }
+.bubbleMenu.theirs { left: 0; bottom: calc(100% + 6px); }
+
+.bubbleMenuItem {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  color: #202124;
+  cursor: pointer;
+  transition: background 0.1s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bubbleMenuItem:hover { background: #f1f3f4; }
+.bubbleMenuItem.danger { color: #d93025; }
+.bubbleMenuItem.danger:hover { background: #fce8e6; }
+
+/* ── Reaction picker ─────────────────────────────────────────────────────── */
+.reactionPicker {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+}
+
+.reactionPickerBtn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: #f1f3f4;
+  border-radius: 50%;
+  font-size: 18px;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reactionPickerBtn:hover { background: #e8f0fe; transform: scale(1.2); }
+
+/* ── Reaction chips on bubble ────────────────────────────────────────────── */
+.reactionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.reactionRow.mine { justify-content: flex-end; }
+
+.reactionChip {
+  background: #fff;
+  border: 1px solid #e8eaed;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.1s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.reactionChip:hover { background: #f1f3f4; }
+
+/* ── Read tick ───────────────────────────────────────────────────────────── */
+.readTick {
+  font-size: 10px;
+  margin-left: 4px;
+  opacity: 0.7;
+}
+
+/* ── Bubble selected ─────────────────────────────────────────────────────── */
+.bubbleSelected .bubble {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

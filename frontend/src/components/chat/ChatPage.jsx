@@ -96,6 +96,11 @@ export default function ChatPage() {
   const [selectedMsgs, setSelectedMsgs] = useState(new Set());
   const [showForwardModal, setShowForwardModal] = useState(false);
   const [forwardTargetId, setForwardTargetId] = useState("");
+  // Reply state
+  const [replyTo, setReplyTo] = useState(null);
+  // Typing indicator
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = useRef(null);
   const fileInputRef = useRef(null);
   const videoInputRef = useRef(null);
   const documentInputRef = useRef(null);
@@ -165,6 +170,7 @@ export default function ChatPage() {
     
     sendMessage(chat.id, v);
     setText("");
+    setReplyTo(null);
     
     // Release lock after delay
     setTimeout(() => {
@@ -784,6 +790,30 @@ export default function ChatPage() {
     clearSelection();
   };
 
+  const handleDeleteMessage = (msgId) => {
+    // Force reload to remove from UI
+    lastLoadedChatIdRef.current = null;
+  };
+
+  const handleReact = (msgId, emoji) => {
+    const key = `reactions_${chatId}`;
+    const stored = JSON.parse(localStorage.getItem(key) || "{}");
+    const userId = getAuthUser()?.employeeId || "me";
+    if (!stored[msgId]) stored[msgId] = {};
+    if (!stored[msgId][emoji]) stored[msgId][emoji] = [];
+    const idx = stored[msgId][emoji].indexOf(userId);
+    if (idx >= 0) stored[msgId][emoji].splice(idx, 1);
+    else stored[msgId][emoji].push(userId);
+    localStorage.setItem(key, JSON.stringify(stored));
+    setReplyTo(r => r); // nudge re-render
+  };
+
+  const getReactions = (msgId) => {
+    const key = `reactions_${chatId}`;
+    const stored = JSON.parse(localStorage.getItem(key) || "{}");
+    return stored[String(msgId)] || {};
+  };
+
   return (
     <div className="chat">
       <header className="chatHeader">
@@ -1119,11 +1149,16 @@ export default function ChatPage() {
                       <MessageBubble
                         message={{
                           ...m,
+                          reactions: getReactions(m.id),
                           text: isMatched ? (
                             <HighlightText text={m.text} query={searchTerm} />
                           ) : m.text,
                         }}
-                        onLongPress={() => toggleSelectMsg(String(m.id))}
+                        isSelected={isSelected}
+                        onReply={setReplyTo}
+                        onDelete={handleDeleteMessage}
+                        onReact={handleReact}
+                        onSelect={() => toggleSelectMsg(String(m.id))}
                       />
                     </div>
                   </div>
@@ -1215,6 +1250,20 @@ export default function ChatPage() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Reply bar */}
+      {replyTo && (
+        <div className="replyBar">
+          <div className="replyBarContent">
+            <div className="replyBarLine" />
+            <div>
+              <div className="replyBarName">{replyTo.senderName || "Message"}</div>
+              <div className="replyBarText">{typeof replyTo.text === "string" ? replyTo.text.slice(0, 80) : "📎 Attachment"}</div>
+            </div>
+          </div>
+          <button className="replyBarClose" onClick={() => setReplyTo(null)}>✕</button>
         </div>
       )}
 
