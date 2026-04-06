@@ -576,54 +576,29 @@ function reducer(state, action) {
     }
 
     case "LOAD_MESSAGES": {
-      // Load messages from backend for a specific chat
       const { chatId, messages } = action.payload;
-      
-      console.log('\n📥 ========== LOAD_MESSAGES START ==========');
-      console.log('📥 Chat ID:', chatId);
-      console.log('📥 Backend messages count:', messages.length);
-      
+
       const chats = state.chats.map((chat) => {
         if (chat.id !== chatId) return chat;
-        
-        console.log('\n🗂️ Processing chat:', chat.name);
-        console.log('🗂️ Current local messages count:', chat.messages.length);
-        
-        // Ensure employeeId is set for DM chats
+
         const employeeId = chat.employeeId || (chat.kind === "dm" ? chat.id : null);
-        
-        // Remove any pending/local messages that match backend messages by text+time
-        // This prevents duplicates when optimistic updates exist
-        const backendMessageTexts = new Set(messages.map(m => 
-          `${m.text.trim()}_${Math.floor(m.createdAt / 5000)}` // Round to 5 second buckets
-        ));
-        
-        const filteredLocalMessages = chat.messages.filter(localMsg => {
-          const key = `${localMsg.text.trim()}_${Math.floor(localMsg.createdAt / 5000)}`;
-          const isInBackend = backendMessageTexts.has(key);
-          
-          if (isInBackend) {
-            console.log('⏭️ Removing optimistic duplicate:', localMsg.text);
-            return false;
-          }
-          return true;
-        });
-        
-        console.log('📊 Filtered out', chat.messages.length - filteredLocalMessages.length, 'duplicates');
-        
-        return {
-          ...chat,
-          employeeId,
-          messages: [...filteredLocalMessages, ...messages].sort((a, b) => a.createdAt - b.createdAt),
-          isLoadingMessages: false
-        };
+
+        // Build a set of all backend message IDs
+        const backendIds = new Set(messages.map(m => String(m.id)));
+
+        // Keep only local optimistic messages (temp_ prefix) that are NOT yet in backend
+        const pendingOptimistic = chat.messages.filter(m =>
+          String(m.id).startsWith("temp_") && !backendIds.has(String(m.id))
+        );
+
+        // Merge: backend messages + any still-pending optimistic ones
+        const merged = [...messages, ...pendingOptimistic]
+          .sort((a, b) => a.createdAt - b.createdAt);
+
+        return { ...chat, employeeId, messages: merged, isLoadingMessages: false };
       });
-      
-      // 💾 SAVE TO LOCALSTORAGE AFTER LOADING
+
       saveChats(chats);
-      
-      console.log('📥 ========== LOAD_MESSAGES END ==========\n');
-      
       return { chats };
     }
 
