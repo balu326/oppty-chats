@@ -146,3 +146,53 @@ class MeetingSerializer(serializers.ModelSerializer):
 
     def get_invitees(self, obj):
         return [{"id": str(e.pk), "name": e.name, "email": e.email} for e in obj.invitees.all()]
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(source="pk", read_only=True)
+    senderName = serializers.CharField(source="sender.name", read_only=True, default="")
+    senderAvatar = serializers.SerializerMethodField()
+    createdAt = serializers.DateTimeField(source="created_at", read_only=True)
+    isRead = serializers.BooleanField(source="is_read", read_only=True)
+    type = serializers.CharField(source="notif_type", read_only=True)
+    chatId = serializers.CharField(source="chat_id", read_only=True)
+    messageId = serializers.CharField(source="message_id", read_only=True)
+
+    class Meta:
+        model = __import__("chatapp.models", fromlist=["Notification"]).Notification
+        fields = ["id", "type", "title", "body", "chatId", "messageId",
+                  "isRead", "senderName", "senderAvatar", "createdAt"]
+
+    def get_senderAvatar(self, obj):
+        return _avatar_url(obj.sender, self.context.get("request")) if obj.sender else None
+
+
+class BookmarkSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(source="pk", read_only=True)
+    messageId = serializers.CharField(source="message.pk", read_only=True)
+    chatId = serializers.CharField(source="message.chat_id", read_only=True)
+    text = serializers.CharField(source="message.text", read_only=True)
+    senderName = serializers.CharField(source="message.sender.name", read_only=True)
+    senderAvatar = serializers.SerializerMethodField()
+    createdAt = serializers.DateTimeField(source="created_at", read_only=True)
+    messageCreatedAt = serializers.DateTimeField(source="message.created_at", read_only=True)
+    note = serializers.CharField(read_only=True)
+    attachment = serializers.SerializerMethodField()
+
+    class Meta:
+        model = __import__("chatapp.models", fromlist=["Bookmark"]).Bookmark
+        fields = ["id", "messageId", "chatId", "text", "senderName", "senderAvatar",
+                  "note", "attachment", "createdAt", "messageCreatedAt"]
+
+    def get_senderAvatar(self, obj):
+        return _avatar_url(obj.message.sender, self.context.get("request"))
+
+    def get_attachment(self, obj):
+        msg = obj.message
+        if not msg.attachment_type:
+            return None
+        return {
+            "type": msg.attachment_type,
+            "url": msg.attachment_url,
+            "fileName": msg.attachment_file_name,
+        }

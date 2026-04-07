@@ -2,6 +2,8 @@ from django.urls import path
 
 from .views import (
     AllMessagesView,
+    BookmarkDetailView,
+    BookmarkListView,
     EmployeePermissionView,
     EmployeesView,
     ForgotPasswordView,
@@ -16,6 +18,8 @@ from .views import (
     MessageLinkView,
     MessageListView,
     MessageUploadView,
+    NotificationDetailView,
+    NotificationListView,
     ProfileView,
     ResetPasswordView,
     VerifyOtpView,
@@ -41,5 +45,9 @@ urlpatterns = [
     path("messages/link", MessageLinkView.as_view()),
     path("messages/<str:chat_id>", MessageListView.as_view()),
     path("messages", MessageDetailView.as_view()),
+    path("notifications", NotificationListView.as_view()),
+    path("notifications/<int:notif_id>", NotificationDetailView.as_view()),
+    path("bookmarks", BookmarkListView.as_view()),
+    path("bookmarks/<int:bookmark_id>", BookmarkDetailView.as_view()),
     path("health", HealthView.as_view()),
 ]

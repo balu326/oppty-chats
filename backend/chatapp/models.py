@@ -66,7 +66,7 @@ class ChatGroup(models.Model):
     members = models.ManyToManyField(Employee, related_name="member_groups", blank=True)
     created_by = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="created_groups")
     created_at = models.DateTimeField(auto_now_add=True)
-    admins_only = models.BooleanField(default=False, help_text="Only admins can send messages in this group")
+    admins_only = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["name"]
@@ -105,11 +105,7 @@ class Message(models.Model):
     chat_id = models.CharField(max_length=255, db_index=True)
     sender = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="messages")
     receiver = models.ForeignKey(
-        Employee,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="received_messages",
+        Employee, null=True, blank=True, on_delete=models.SET_NULL, related_name="received_messages",
     )
     text = models.TextField(blank=True, default="")
     attachment_type = models.CharField(max_length=20, choices=ATTACHMENT_CHOICES, blank=True, default="")
@@ -121,9 +117,7 @@ class Message(models.Model):
 
     class Meta:
         ordering = ["created_at"]
-        indexes = [
-            models.Index(fields=["chat_id", "created_at"]),
-        ]
+        indexes = [models.Index(fields=["chat_id", "created_at"])]
 
     @property
     def content(self):
@@ -134,9 +128,50 @@ class Message(models.Model):
         return self.created_at
 
     def __str__(self):
-        chat_label = self.chat_id
-        if chat_label.startswith("dm_"):
-            chat_label = chat_label.replace("dm_", "DM:", 1)
         if self.receiver:
             return f"{self.sender.name} -> {self.receiver.name}: {self.text[:40]}"
-        return f"{self.sender.name} -> Group ({chat_label}): {self.text[:40]}"
+        return f"{self.sender.name} -> Group ({self.chat_id}): {self.text[:40]}"
+
+
+class Notification(models.Model):
+    TYPE_MESSAGE = "message"
+    TYPE_MENTION = "mention"
+    TYPE_GROUP = "group"
+    TYPE_SYSTEM = "system"
+    TYPE_CHOICES = [
+        (TYPE_MESSAGE, "Message"),
+        (TYPE_MENTION, "Mention"),
+        (TYPE_GROUP, "Group"),
+        (TYPE_SYSTEM, "System"),
+    ]
+
+    recipient = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="notifications")
+    sender = models.ForeignKey(Employee, null=True, blank=True, on_delete=models.SET_NULL, related_name="sent_notifications")
+    notif_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default=TYPE_MESSAGE)
+    title = models.CharField(max_length=255)
+    body = models.TextField(blank=True, default="")
+    chat_id = models.CharField(max_length=255, blank=True, default="")
+    message_id = models.CharField(max_length=255, blank=True, default="")
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["recipient", "is_read", "created_at"])]
+
+    def __str__(self):
+        return f"Notif → {self.recipient.name}: {self.title}"
+
+
+class Bookmark(models.Model):
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="bookmarks")
+    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name="bookmarks")
+    note = models.CharField(max_length=255, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        unique_together = [("employee", "message")]
+
+    def __str__(self):
+        return f"{self.employee.name} bookmarked msg {self.message.id}"

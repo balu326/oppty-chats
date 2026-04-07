@@ -785,25 +785,69 @@ export default function ChatPage() {
   const clearSelection = () => setSelectedMsgs(new Set());
 
   const handleForward = () => {
-    if (selectedMsgs.size === 0 || !forwardTargetId) return;
-    const auth = getAuthUser();
+    if (selectedMsgs.size === 0 || !forwardTargetId) {
+      console.log('⚠️ Cannot forward: no messages selected or no target');
+      alert('Please select a chat to forward to');
+      return;
+    }
+    
+    console.log('📤 Starting forward:', { 
+      selectedCount: selectedMsgs.size, 
+      targetId: forwardTargetId 
+    });
+    
+    // Extract text from selected messages
     const texts = [...selectedMsgs].map(id => {
       for (const g of groups) {
         const m = g.messages.find(msg => String(msg.id) === String(id));
-        if (m) return m.text;
+        if (m) {
+          // Use rawText if text is JSX, otherwise use text directly
+          if (typeof m.text === "string") return m.text;
+          if (m.rawText && typeof m.rawText === "string") return m.rawText;
+          return String(m.text ?? "");
+        }
       }
       return "";
     }).filter(Boolean);
 
-    texts.forEach(text => {
-      sendMessage(forwardTargetId, `↪ ${text}`);
+    console.log('📝 Messages to forward:', texts.length, 'messages');
+
+    if (texts.length === 0) {
+      alert('No valid messages to forward');
+      return;
+    }
+
+    // Send each message with a small delay to prevent race conditions
+    texts.forEach((text, index) => {
+      setTimeout(() => {
+        console.log(`📨 Forwarding message ${index + 1}/${texts.length}:`, text.substring(0, 50));
+        sendMessage(forwardTargetId, `↪ ${text}`);
+      }, index * 300); // 300ms delay between each message
     });
-    setShowForwardModal(false);
-    clearSelection();
+    
+    console.log('✅ Forward initiated for', texts.length, 'messages');
+    
+    // Close modal and clear selection after a short delay
+    setTimeout(() => {
+      setShowForwardModal(false);
+      clearSelection();
+    }, 500);
   };
 
   const handleDeleteMessage = (msgId) => {
     deleteMessage(chatId, msgId);
+  };
+
+  const handleBookmark = async (message) => {
+    const auth = getAuthUser();
+    if (!auth?.token || !message?.id) return;
+    try {
+      await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:8000/api"}/bookmarks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${auth.token}` },
+        body: JSON.stringify({ messageId: message.id }),
+      });
+    } catch { /* silent */ }
   };
 
   const handleReact = (msgId, emoji) => {
@@ -1161,12 +1205,14 @@ export default function ChatPage() {
                           text: isMatched ? (
                             <HighlightText text={m.text} query={searchTerm} />
                           ) : m.text,
+                          rawText: typeof m.text === "string" ? m.text : m.rawText,
                         }}
                         isSelected={isSelected}
                         onReply={setReplyTo}
                         onDelete={handleDeleteMessage}
                         onReact={handleReact}
                         onSelect={() => toggleSelectMsg(String(m.id))}
+                        onBookmark={handleBookmark}
                       />
                     </div>
                   </div>

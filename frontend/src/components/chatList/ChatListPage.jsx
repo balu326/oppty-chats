@@ -15,7 +15,7 @@ function SectionTitle({ mode }) {
   if (mode === "group") {
     return (
       <span className="sectionTitle">
-        <span className="titleOrange">Gro</span>
+        <span className="titleBlue">Gro</span>
         <span className="titleBlack">ups</span>
       </span>
     );
@@ -23,7 +23,7 @@ function SectionTitle({ mode }) {
 
   return (
     <span className="sectionTitle">
-      <span className="titleOrange">Cha</span>
+      <span className="titleBlue">Cha</span>
       <span className="titleBlack">ts</span>
     </span>
   );
@@ -80,7 +80,7 @@ export default function ChatListPage({ mode = "dm" }) {
               <img className="avatar" src={chat.avatarUrl} alt=""
                 onError={(e) => { e.target.style.display="none"; e.target.nextSibling.style.display="flex"; }}
               />
-              <span className="avatarInitials" style={{ display:"none", width:46, height:46, borderRadius:"50%", background:"#e67e22", color:"#fff", fontSize:18, fontWeight:700, alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+              <span className="avatarInitials" style={{ display:"none", width:46, height:46, borderRadius:"50%", background:"#ff6b35", color:"#fff", fontSize:18, fontWeight:700, alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                 {(chat.name||"?").slice(0,1).toUpperCase()}
               </span>
 

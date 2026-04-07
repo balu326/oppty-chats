@@ -787,11 +787,21 @@ export function ChatProvider({ children }) {
         dispatch({ type: "REMOVE_GROUP_MEMBER", chatId, memberId });
       },
       loadMessages: (chatId, messages) => dispatch({ type: "LOAD_MESSAGES", payload: { chatId, messages } }),
-      receiveMessage: (message) =>
-        dispatch({
-          type: "RECEIVE_MESSAGE",
-          message: normalizeBackendMessage(message, getAuthUser()?.employeeId),
-        }),
+      receiveMessage: (message) => {
+        const normalized = normalizeBackendMessage(message, getAuthUser()?.employeeId);
+        // Show popup only for messages from others (not sent by me)
+        if (normalized.sender !== "me" && normalized.text) {
+          import("../components/common/MessagePopup.jsx").then(({ triggerMessagePopup }) => {
+            triggerMessagePopup({
+              senderName: normalized.senderName || "Someone",
+              senderAvatar: normalized.senderAvatar || null,
+              text: normalized.text,
+              chatId: normalized.chatId,
+            });
+          });
+        }
+        dispatch({ type: "RECEIVE_MESSAGE", message: normalized });
+      },
       resetChats: () => dispatch({ type: "RESET" }),
       isAdmin: isSystemAdmin(),
     };

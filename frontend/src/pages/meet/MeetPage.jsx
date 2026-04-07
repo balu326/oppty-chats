@@ -210,7 +210,7 @@ export default function MeetPage() {
             { icon: "📅", num: upcoming.length, label: "Upcoming", color: "blue" },
             { icon: "✅", num: past.length,     label: "Completed", color: "green" },
             { icon: "👥", num: employees.length + 1, label: "Team size", color: "purple" },
-            { icon: "🔖", num: savedLinks.length, label: "Saved links", color: "orange" },
+            { icon: "🔖", num: savedLinks.length, label: "Saved links", color: "blue" },
           ].map(s => (
             <div key={s.label} className={`meetStatCard ${s.color}`}>
               <div className="meetStatEmoji">{s.icon}</div>

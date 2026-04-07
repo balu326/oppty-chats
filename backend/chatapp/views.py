@@ -10,9 +10,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .authentication import SessionTokenAuthentication
-from .models import ChatGroup, Employee, Meeting, Message
+from .models import ChatGroup, Employee, Meeting, Message, Notification, Bookmark
 from .permissions import IsAdminOrSuperAdmin, IsSuperAdmin, IsSuperAdminOrReadOnly
-from .serializers import EmployeeLoginSerializer, EmployeeSerializer, GroupSerializer, MeetingSerializer, MessageSerializer
+from .serializers import (EmployeeLoginSerializer, EmployeeSerializer, GroupSerializer,
+                          MeetingSerializer, MessageSerializer, NotificationSerializer, BookmarkSerializer)
 from .services import broadcast_message
 
 
@@ -531,6 +532,35 @@ class MessageDetailView(APIView):
         receiver = _receiver_from_chat_id(chat_id, sender.id)
         message = Message.objects.create(chat_id=chat_id, sender=sender, receiver=receiver, text=text)
         broadcast_message(message)
+
+        # Create notification for receiver (DM) or group members
+        if receiver:
+            Notification.objects.create(
+                recipient=receiver,
+                sender=sender,
+                notif_type=Notification.TYPE_MESSAGE,
+                title=sender.name,
+                body=text[:120],
+                chat_id=chat_id,
+                message_id=str(message.pk),
+            )
+        else:
+            # Group message — notify all members except sender
+            try:
+                group = ChatGroup.objects.prefetch_related("members").get(pk=chat_id)
+                for member in group.members.exclude(pk=sender.pk):
+                    Notification.objects.create(
+                        recipient=member,
+                        sender=sender,
+                        notif_type=Notification.TYPE_GROUP,
+                        title=f"{sender.name} in {group.name}",
+                        body=text[:120],
+                        chat_id=chat_id,
+                        message_id=str(message.pk),
+                    )
+            except (ChatGroup.DoesNotExist, ValueError):
+                pass
+
         return Response({"success": True, "message": MessageSerializer(message, context={"request": request}).data, "isNew": True})
 
 
@@ -616,3 +646,97 @@ class MessageLinkView(APIView):
         )
         broadcast_message(message)
         return Response({"success": True, "message": MessageSerializer(message, context={"request": request}).data})
+
+
+class NotificationListView(APIView):
+    """GET all notifications for current user. PATCH to mark all read."""
+    authentication_classes = [SessionTokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        notifs = Notification.objects.filter(recipient=request.user).select_related("sender")[:100]
+        unread_count = Notification.objects.filter(recipient=request.user, is_read=False).count()
+        return Response({
+            "success": True,
+            "notifications": NotificationSerializer(notifs, many=True, context={"request": request}).data,
+            "unreadCount": unread_count,
+        })
+
+    def patch(self, request):
+        """Mark all notifications as read."""
+        Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+        return Response({"success": True, "message": "All notifications marked as read"})
+
+
+class NotificationDetailView(APIView):
+    """PATCH to mark a single notification as read. DELETE to remove it."""
+    authentication_classes = [SessionTokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request, notif_id):
+        try:
+            notif = Notification.objects.get(pk=notif_id, recipient=request.user)
+        except Notification.DoesNotExist:
+            return Response({"message": "Notification not found"}, status=status.HTTP_404_NOT_FOUND)
+        notif.is_read = True
+        notif.save(update_fields=["is_read"])
+        return Response({"success": True})
+
+    def delete(self, request, notif_id):
+        try:
+            notif = Notification.objects.get(pk=notif_id, recipient=request.user)
+        except Notification.DoesNotExist:
+            return Response({"message": "Notification not found"}, status=status.HTTP_404_NOT_FOUND)
+        notif.delete()
+        return Response({"success": True})
+
+
+class BookmarkListView(APIView):
+    """GET all bookmarks. POST to add a bookmark."""
+    authentication_classes = [SessionTokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        bookmarks = (Bookmark.objects
+                     .filter(employee=request.user)
+                     .select_related("message", "message__sender")[:200])
+        return Response({
+            "success": True,
+            "bookmarks": BookmarkSerializer(bookmarks, many=True, context={"request": request}).data,
+        })
+
+    def post(self, request):
+        message_id = request.data.get("messageId")
+        note = (request.data.get("note") or "").strip()
+        if not message_id:
+            return Response({"message": "messageId is required"}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            message = Message.objects.get(pk=message_id)
+        except Message.DoesNotExist:
+            return Response({"message": "Message not found"}, status=status.HTTP_404_NOT_FOUND)
+        bookmark, created = Bookmark.objects.get_or_create(
+            employee=request.user, message=message,
+            defaults={"note": note}
+        )
+        if not created and note:
+            bookmark.note = note
+            bookmark.save(update_fields=["note"])
+        return Response({
+            "success": True,
+            "created": created,
+            "bookmark": BookmarkSerializer(bookmark, context={"request": request}).data,
+        }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+
+class BookmarkDetailView(APIView):
+    """DELETE a bookmark."""
+    authentication_classes = [SessionTokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, bookmark_id):
+        try:
+            bookmark = Bookmark.objects.get(pk=bookmark_id, employee=request.user)
+        except Bookmark.DoesNotExist:
+            return Response({"message": "Bookmark not found"}, status=status.HTTP_404_NOT_FOUND)
+        bookmark.delete()
+        return Response({"success": True})

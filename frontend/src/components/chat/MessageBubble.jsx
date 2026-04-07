@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 const REACTIONS = ["👍","❤️","😂","😮","😢","🙏"];
 
@@ -44,17 +45,38 @@ function AttachmentView({ attachment }) {
   );
 }
 
-export default function MessageBubble({ message, onReply, onDelete, onReact, onSelect, isSelected }) {
+export default function MessageBubble({ message, onReply, onDelete, onReact, onSelect, isSelected, onDoubleClick, onBookmark }) {
   const mine = message.sender === "me";
   const initial = (message.senderName || "?").slice(0, 1).toUpperCase();
   const [showMenu, setShowMenu] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
+  const bubbleRef = useRef(null);
   const menuRef = useRef(null);
   const longPressRef = useRef(null);
+  const clickTimerRef = useRef(null);
+
+  // Calculate smart menu position anchored to the bubble
+  const openMenu = (e) => {
+    if (bubbleRef.current) {
+      const rect = bubbleRef.current.getBoundingClientRect();
+      const menuH = 220; // estimated menu height
+      const menuW = 180;
+      // Prefer above the bubble; flip below if not enough space
+      let top = rect.top - menuH - 8;
+      if (top < 8) top = rect.bottom + 8;
+      // Align right for mine, left for theirs; clamp to viewport
+      let left = mine ? rect.right - menuW : rect.left;
+      if (left + menuW > window.innerWidth - 8) left = window.innerWidth - menuW - 8;
+      if (left < 8) left = 8;
+      setMenuPos({ top, left });
+    }
+    setShowMenu(true);
+  };
 
   // Close menu on outside click
   useEffect(() => {
-    if (!showMenu && !showReactions) return;
+    if (!showMenu) return;
     const handler = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setShowMenu(false);
@@ -63,51 +85,87 @@ export default function MessageBubble({ message, onReply, onDelete, onReact, onS
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [showMenu, showReactions]);
+  }, [showMenu]);
 
   // Long press for mobile
-  const handleTouchStart = () => {
-    longPressRef.current = setTimeout(() => setShowMenu(true), 500);
+  const handleTouchStart = (e) => {
+    longPressRef.current = setTimeout(() => openMenu(e), 500);
   };
-  const handleTouchEnd = () => {
-    clearTimeout(longPressRef.current);
+  const handleTouchEnd = () => clearTimeout(longPressRef.current);
+
+  // Resolve raw text regardless of whether it's a string or JSX element
+  const getRawText = () => {
+    if (typeof message.text === "string") return message.text;
+    if (message.rawText && typeof message.rawText === "string") return message.rawText;
+    return "";
   };
 
   const handleCopy = () => {
-    if (message.text && typeof message.text === "string") {
-      navigator.clipboard.writeText(message.text);
+    const raw = getRawText();
+    if (raw) {
+      navigator.clipboard.writeText(raw).catch(() => {
+        const el = document.createElement("textarea");
+        el.value = raw;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand("copy");
+        document.body.removeChild(el);
+      });
     }
     setShowMenu(false);
   };
 
-  const handleReply = () => {
-    onReply?.(message);
-    setShowMenu(false);
+  const handleDoubleClick = (e) => {
+    e.preventDefault();
+    clearTimeout(clickTimerRef.current);
+    openMenu(e);
+    onDoubleClick?.(message);
   };
 
-  const handleDelete = () => {
-    onDelete?.(message.id);
-    setShowMenu(false);
-  };
-
-  const handleReact = (emoji) => {
-    onReact?.(message.id, emoji);
-    setShowReactions(false);
-    setShowMenu(false);
-  };
-
-  const handleSelect = () => {
-    onSelect?.(String(message.id));
-    setShowMenu(false);
-  };
+  const handleReply = () => { onReply?.(message); setShowMenu(false); };
+  const handleDelete = () => { onDelete?.(message.id); setShowMenu(false); };
+  const handleReact = (emoji) => { onReact?.(message.id, emoji); setShowReactions(false); setShowMenu(false); };
+  const handleSelect = () => { onSelect?.(String(message.id)); setShowMenu(false); };
+  const handleBookmark = () => { onBookmark?.(message); setShowMenu(false); };
 
   const reactions = message.reactions || {};
   const reactionEntries = Object.entries(reactions).filter(([, users]) => users?.length > 0);
 
+  const contextMenu = showMenu && createPortal(
+    <div
+      ref={menuRef}
+      className="bubbleMenuPortal"
+      style={{ top: menuPos.top, left: menuPos.left }}
+    >
+      {!showReactions ? (
+        <>
+          <button className="bubbleMenuItem" onClick={() => setShowReactions(true)}>😊 React</button>
+          <button className="bubbleMenuItem" onClick={handleReply}>↩ Reply</button>
+          {(message.text || message.rawText) && (
+            <button className="bubbleMenuItem" onClick={handleCopy}>📋 Copy</button>
+          )}
+          <button className="bubbleMenuItem" onClick={handleSelect}>☑ Select</button>
+          <button className="bubbleMenuItem" onClick={handleBookmark}>🔖 Bookmark</button>
+          {mine && (
+            <button className="bubbleMenuItem danger" onClick={handleDelete}>🗑 Delete</button>
+          )}
+        </>
+      ) : (
+        <div className="reactionPicker">
+          {REACTIONS.map(e => (
+            <button key={e} className="reactionPickerBtn" onClick={() => handleReact(e)}>{e}</button>
+          ))}
+        </div>
+      )}
+    </div>,
+    document.body
+  );
+
   return (
     <div
       className={`bubbleRow ${mine ? "mine" : "theirs"} ${isSelected ? "bubbleSelected" : ""}`}
-      onContextMenu={e => { e.preventDefault(); setShowMenu(true); }}
+      onContextMenu={e => { e.preventDefault(); openMenu(e); }}
+      onDoubleClick={handleDoubleClick}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
@@ -123,7 +181,7 @@ export default function MessageBubble({ message, onReply, onDelete, onReact, onS
         </div>
       )}
 
-      <div className="bubbleContent" ref={menuRef}>
+      <div className="bubbleContent" ref={bubbleRef}>
         {!mine && message.senderName && <div className="senderName">{message.senderName}</div>}
 
         {/* Reply preview */}
@@ -161,32 +219,9 @@ export default function MessageBubble({ message, onReply, onDelete, onReact, onS
             ))}
           </div>
         )}
-
-        {/* Context menu */}
-        {showMenu && (
-          <div className={`bubbleMenu ${mine ? "mine" : "theirs"}`}>
-            {!showReactions ? (
-              <>
-                <button className="bubbleMenuItem" onClick={() => setShowReactions(true)}>😊 React</button>
-                <button className="bubbleMenuItem" onClick={handleReply}>↩ Reply</button>
-                {message.text && typeof message.text === "string" && (
-                  <button className="bubbleMenuItem" onClick={handleCopy}>📋 Copy</button>
-                )}
-                <button className="bubbleMenuItem" onClick={handleSelect}>☑ Select</button>
-                {mine && (
-                  <button className="bubbleMenuItem danger" onClick={handleDelete}>🗑 Delete</button>
-                )}
-              </>
-            ) : (
-              <div className="reactionPicker">
-                {REACTIONS.map(e => (
-                  <button key={e} className="reactionPickerBtn" onClick={() => handleReact(e)}>{e}</button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
+
+      {contextMenu}
     </div>
   );
 }

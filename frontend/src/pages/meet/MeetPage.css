@@ -247,7 +247,7 @@
 .meetStatCard.blue   { border-top: 3px solid #4285F4; }
 .meetStatCard.green  { border-top: 3px solid #34A853; }
 .meetStatCard.purple { border-top: 3px solid #9c27b0; }
-.meetStatCard.orange { border-top: 3px solid #ff6b00; }
+.meetStatCard.blue { border-top: 3px solid #0084ff; }
 
 .meetStatEmoji { font-size: 22px; margin-bottom: 8px; }
 .meetStatNum   { font-size: 28px; font-weight: 800; color: #1a1a2e; line-height: 1; }
@@ -669,4 +669,46 @@
 @media (max-width: 480px) {
   .meetStats { grid-template-columns: 1fr 1fr; }
   .meetSavedGrid { grid-template-columns: 1fr; }
+}
+
+/* ── Dark mode overrides ─────────────────────────────────────────────────── */
+[data-theme="dark"] .meetPage {
+  background: var(--bg);
+}
+
+[data-theme="dark"] .meetNav {
+  background: rgba(32, 44, 51, 0.95);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .meetNavBrand { color: var(--text); }
+
+[data-theme="dark"] .meetStatCard,
+[data-theme="dark"] .meetSavedCard,
+[data-theme="dark"] .meetCard,
+[data-theme="dark"] .meetModal,
+[data-theme="dark"] .meetEmpty {
+  background: var(--panel);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+[data-theme="dark"] .meetNavBtn.outline,
+[data-theme="dark"] .meetBtnOutline {
+  background: var(--panel-2);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .meetHeroBtn.primary {
+  background: var(--panel);
+  color: var(--text);
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background: var(--panel-2);
+  color: var(--text);
+  border-color: var(--border);
 }

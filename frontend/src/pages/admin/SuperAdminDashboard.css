@@ -512,8 +512,8 @@
 }
 
 .superAdminSelect:focus {
-  border-color: #ff6b00;
-  box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.15);
+  border-color: #ff6b35;
+  box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.15);
 }
 
 /* ── Chat Monitor ─────────────────────────────────────────────────────── */
@@ -551,7 +551,7 @@
 }
 
 .monitorBadge {
-  background: #ff6b00;
+  background: #ff6b35;
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -571,7 +571,7 @@
   transition: border-color 0.15s;
 }
 
-.monitorSearch:focus { border-color: #ff6b00; }
+.monitorSearch:focus { border-color: #ff6b35; }
 
 .monitorConvList {
   overflow-y: auto;
@@ -782,7 +782,7 @@
 .monitorMsgSender {
   font-size: 12.5px;
   font-weight: 700;
-  color: #ff6b00;
+  color: #ff6b35;
 }
 
 .monitorMsgTime {
@@ -821,7 +821,7 @@
   border: 1px solid #e9edef;
   border-radius: 8px;
   font-size: 12.5px;
-  color: #ff6b00;
+  color: #ff6b35;
   text-decoration: none;
   margin-top: 4px;
 }
@@ -834,3 +834,41 @@
   .monitorList { height: 300px; }
   .monitorChat { height: 400px; }
 }
+
+/* ── Dark mode overrides ─────────────────────────────────────────────────── */
+[data-theme="dark"] .superAdminFeedItem,
+[data-theme="dark"] .superAdminModal,
+[data-theme="dark"] .monitorShell,
+[data-theme="dark"] .monitorList,
+[data-theme="dark"] .monitorListHeader,
+[data-theme="dark"] .monitorMsgText,
+[data-theme="dark"] .monitorConvHeader,
+[data-theme="dark"] .monitorConvMessages {
+  background: var(--panel);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+[data-theme="dark"] .monitorConvRow:hover { background: var(--wa-list-hover); }
+[data-theme="dark"] .monitorConvRow.active { background: var(--wa-list-active); }
+
+[data-theme="dark"] .superAdminStatCard,
+[data-theme="dark"] .superAdminStatCard.peach,
+[data-theme="dark"] .superAdminStatCard.sky,
+[data-theme="dark"] .superAdminStatCard.mint,
+[data-theme="dark"] .superAdminStatCard.gold {
+  background: var(--panel-2);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .superAdminSelect,
+[data-theme="dark"] .monitorSearch {
+  background: var(--panel-2);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .pill.employee { background: rgba(20, 88, 200, 0.2); color: #7eb3ff; }
+[data-theme="dark"] .pill.admin    { background: rgba(201, 95, 23, 0.2); color: #ffb07a; }
+[data-theme="dark"] .pill.superadmin { background: rgba(138, 27, 179, 0.2); color: #d48aff; }
+[data-theme="dark"] .pill.neutral  { background: var(--panel-2); color: var(--text-secondary); }
