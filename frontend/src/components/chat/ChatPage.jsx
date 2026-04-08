@@ -250,7 +250,7 @@ export default function ChatPage() {
 
     const timer = setTimeout(loadFromBackend, 300);
     return () => clearTimeout(timer);
-  }, [chatId, chat?.kind, chat?.messages?.length]);
+  }, [chatId, chat?.kind]);
 
   useEffect(() => {
     receiveMessageRef.current = receiveMessage;
