@@ -55,7 +55,9 @@ function loadChats() {
 
 function saveChats(chats) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
+    // Only persist chat metadata, never messages (avoids stale/duplicate message issues)
+    const withoutMessages = chats.map(({ messages, isLoadingMessages, ...rest }) => rest);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(withoutMessages));
   } catch { /* silent */ }
 }
 
@@ -184,8 +186,8 @@ async function initializeChats() {
         ...existing,
         ...chat,
         id: conversationId,
-        messages: existing?.messages || [],
-        isLoadingMessages: existing?.isLoadingMessages || false,
+        messages: [],
+        isLoadingMessages: false,
       };
     });
 
@@ -195,8 +197,8 @@ async function initializeChats() {
     return {
       ...existing,
       ...chat,
-      messages: existing?.messages || [],
-      isLoadingMessages: existing?.isLoadingMessages || false,
+      messages: [],
+      isLoadingMessages: false,
     };
   });
 

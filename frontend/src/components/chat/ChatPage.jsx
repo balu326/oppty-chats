@@ -220,8 +220,6 @@ export default function ChatPage() {
 
     if (chat.isLoadingMessages) return;
 
-    if (lastLoadedChatIdRef.current === chatId && chat.messages && chat.messages.length > 0) return;
-
     const timeSinceLastSend = Date.now() - (window.lastMessageSentTime || 0);
     const isSameChat = window.lastMessageSentChatId === chatId;
     if (timeSinceLastSend < 3000 && timeSinceLastSend > 0 && isSameChat) return;
