@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Bookmark, ChatGroup, Employee, Meeting, Message, Notification
+from .models import ChatGroup, Employee, Meeting, Message
 
 
 def _avatar_url(obj, request=None):
@@ -159,7 +159,7 @@ class NotificationSerializer(serializers.ModelSerializer):
     messageId = serializers.CharField(source="message_id", read_only=True)
 
     class Meta:
-        model = Notification
+        model = __import__("chatapp.models", fromlist=["Notification"]).Notification
         fields = ["id", "type", "title", "body", "chatId", "messageId",
                   "isRead", "senderName", "senderAvatar", "createdAt"]
 
@@ -180,7 +180,7 @@ class BookmarkSerializer(serializers.ModelSerializer):
     attachment = serializers.SerializerMethodField()
 
     class Meta:
-        model = Bookmark
+        model = __import__("chatapp.models", fromlist=["Bookmark"]).Bookmark
         fields = ["id", "messageId", "chatId", "text", "senderName", "senderAvatar",
                   "note", "attachment", "createdAt", "messageCreatedAt"]
 

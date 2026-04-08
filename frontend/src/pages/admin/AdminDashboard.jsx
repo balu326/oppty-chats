@@ -36,10 +36,19 @@ export default function AdminDashboard() {
   const fetchGroups = async () => {
     try {
       const response = await fetch(`${API_URL}/groups`, {
-        headers: { Authorization: `Bearer ${currentEmployee.token}` },
+        headers: {
+          Authorization: `Bearer ${currentEmployee.token}`,
+        },
       });
       const data = await response.json();
-      if (data.success) setGroups(data.groups);
+      console.log('=== GROUPS DATA ===');
+      console.log('Raw response:', data);
+      console.log('Groups array:', data.groups);
+      console.log('Group count:', data.groups?.length);
+      if (data.success) {
+        setGroups(data.groups);
+        console.log('Set groups state with', data.groups.length, 'groups');
+      }
     } catch (error) {
       console.error("Error fetching groups:", error);
     } finally {
@@ -50,10 +59,19 @@ export default function AdminDashboard() {
   const fetchEmployees = async () => {
     try {
       const response = await fetch(`${API_URL}/auth/employees`, {
-        headers: { Authorization: `Bearer ${currentEmployee.token}` },
+        headers: {
+          Authorization: `Bearer ${currentEmployee.token}`,
+        },
       });
       const data = await response.json();
-      if (data.success) setEmployees(data.employees);
+      console.log('=== EMPLOYEES DATA ===');
+      console.log('Raw response:', data);
+      console.log('Employees array:', data.employees);
+      console.log('Employee count:', data.employees?.length);
+      if (data.success) {
+        setEmployees(data.employees);
+        console.log('Set employees state with', data.employees.length, 'employees');
+      }
     } catch (error) {
       console.error("Error fetching employees:", error);
     }
