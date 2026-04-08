@@ -160,6 +160,12 @@ for host in allowed_hosts_list:
 
 if unique_origins:
     CORS_ALLOWED_ORIGINS = unique_origins
+    # Also always include the Vercel app domain if not already present
+    vercel_origin = "https://oppty-chats.vercel.app"
+    if vercel_origin not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(vercel_origin)
+    if vercel_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(vercel_origin)
 else:
     CORS_ALLOW_ALL_ORIGINS = True
 
