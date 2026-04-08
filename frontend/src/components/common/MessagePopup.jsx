@@ -2,25 +2,61 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./MessagePopup.css";
 
-// Global queue so multiple popups can stack
+// ── Browser push notification permission ──────────────────────────────────────
+function requestNotificationPermission() {
+  if ("Notification" in window && Notification.permission === "default") {
+    Notification.requestPermission();
+  }
+}
+
+function sendBrowserNotification({ senderName, text, senderAvatar, chatId, onClickCb }) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  if (document.visibilityState === "visible") return; // only when tab is hidden
+
+  const n = new Notification(senderName, {
+    body: text || "📎 Attachment",
+    icon: senderAvatar || "/favicon.svg",
+    badge: "/favicon.svg",
+    tag: `chat-${chatId}`,   // replaces previous notification for same chat
+    renotify: true,
+  });
+
+  n.onclick = () => {
+    window.focus();
+    onClickCb?.();
+    n.close();
+  };
+}
+
+// ── Global queue ──────────────────────────────────────────────────────────────
 let addPopupFn = null;
 
 export function triggerMessagePopup(popup) {
   addPopupFn?.(popup);
 }
 
+// ── Container ─────────────────────────────────────────────────────────────────
 export default function MessagePopupContainer() {
   const [popups, setPopups] = useState([]);
   const navigate = useNavigate();
 
-  // Register the global trigger
+  useEffect(() => {
+    requestNotificationPermission();
+  }, []);
+
   useEffect(() => {
     addPopupFn = (popup) => {
       const id = Date.now() + Math.random();
       setPopups((prev) => [...prev.slice(-2), { ...popup, id }]); // max 3 stacked
+
+      // Also fire a browser notification when tab is hidden
+      sendBrowserNotification({
+        ...popup,
+        onClickCb: () => popup.chatId && navigate(`/chats/${popup.chatId}`),
+      });
     };
     return () => { addPopupFn = null; };
-  }, []);
+  }, [navigate]);
 
   const dismiss = (id) => setPopups((prev) => prev.filter((p) => p.id !== id));
 
@@ -43,6 +79,7 @@ export default function MessagePopupContainer() {
   );
 }
 
+// ── Single popup ──────────────────────────────────────────────────────────────
 function MessagePopup({ popup, onDismiss, onClick }) {
   const [exiting, setExiting] = useState(false);
   const timerRef = useRef(null);
@@ -66,21 +103,28 @@ function MessagePopup({ popup, onDismiss, onClick }) {
       role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === "Enter" && onClick()}
+      aria-label={`New message from ${popup.senderName}`}
     >
       <div className="msg-popup-avatar">
         {popup.senderAvatar
           ? <img src={popup.senderAvatar} alt={popup.senderName} />
           : <span>{initial}</span>}
       </div>
+
       <div className="msg-popup-body">
+        <div className="msg-popup-app">Oppty Connect</div>
         <div className="msg-popup-name">{popup.senderName}</div>
         <div className="msg-popup-text">{popup.text || "📎 Attachment"}</div>
       </div>
+
       <button
         className="msg-popup-close"
         onClick={(e) => { e.stopPropagation(); close(); }}
-        aria-label="Dismiss"
+        aria-label="Dismiss notification"
       >✕</button>
+
+      {/* Auto-dismiss progress bar */}
+      <div className="msg-popup-progress" />
     </div>
   );
 }
