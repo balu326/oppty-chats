@@ -513,15 +513,23 @@ function reducer(state, action) {
 
         const employeeId = chat.employeeId || (chat.kind === "dm" ? chat.id : null);
 
-        // Build a set of all backend message IDs
+        // Deduplicate: backend messages are source of truth.
+        // Remove any local message (optimistic or temp) that matches a backend message
+        // by same text + sender + close timestamp (within 10s).
         const backendIds = new Set(messages.map(m => String(m.id)));
 
-        // Keep only local optimistic messages (temp_ prefix) that are NOT yet in backend
-        const pendingOptimistic = chat.messages.filter(m =>
-          String(m.id).startsWith("temp_") && !backendIds.has(String(m.id))
-        );
+        const pendingOptimistic = chat.messages.filter(m => {
+          // Keep if it already has a real backend ID
+          if (backendIds.has(String(m.id))) return false;
+          // Drop if it matches a backend message by content (optimistic duplicate)
+          const matchesBackend = messages.some(bm =>
+            bm.sender === m.sender &&
+            (bm.text || "").trim() === (m.text || "").trim() &&
+            Math.abs((bm.createdAt || 0) - (m.createdAt || 0)) < 10000
+          );
+          return !matchesBackend;
+        });
 
-        // Merge: backend messages + any still-pending optimistic ones
         const merged = [...messages, ...pendingOptimistic]
           .sort((a, b) => a.createdAt - b.createdAt);
 
