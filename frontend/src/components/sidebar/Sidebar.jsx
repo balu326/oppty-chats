@@ -281,7 +281,6 @@ export default function Sidebar({ isChatOpen }) {
       formData.append("bio", (draftBio || "").trim());
       if (draftFile) {
         formData.append("avatar", draftFile);
-        console.log("Uploading avatar:", draftFile.name, draftFile.size);
       }
 
       const res = await fetch(`${API_URL}/auth/profile`, {
@@ -290,9 +289,7 @@ export default function Sidebar({ isChatOpen }) {
         body: formData,
       });
 
-      console.log("Profile PATCH status:", res.status);
       const data = await res.json();
-      console.log("Profile PATCH response:", data);
 
       if (data.success && data.employee) {
         const emp = data.employee;

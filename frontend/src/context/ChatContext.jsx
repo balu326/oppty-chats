@@ -47,10 +47,8 @@ function loadChats() {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (!stored) return [];
     const parsed = JSON.parse(stored);
-    console.log('💾 Loaded from localStorage:', parsed.length, 'chats');
     return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    console.error('Failed to load chats from localStorage:', error);
+  } catch {
     return [];
   }
 }
@@ -58,19 +56,12 @@ function loadChats() {
 function saveChats(chats) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
-    console.log('💾 Saved to localStorage:', chats.length, 'chats');
-  } catch (error) {
-    console.error('Failed to save chats to localStorage:', error);
-  }
+  } catch { /* silent */ }
 }
 
 function uid() {
   return crypto?.randomUUID?.() ?? `${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
-
-// Deprecated - no longer using localStorage
-// function loadChats() { ... }
-// function saveChats(chats) { ... }
 
 function handleAuthError(response) {
   if (response.status === 401 || response.status === 403) {
@@ -331,20 +322,11 @@ function isSystemAdmin() {
 function reducer(state, action) {
   switch (action.type) {
     case "INIT": {
-      // Remove duplicate chats by ID before initializing
       const uniqueChatsMap = new Map();
       action.chats.forEach(chat => {
-        if (!uniqueChatsMap.has(chat.id)) {
-          uniqueChatsMap.set(chat.id, chat);
-        } else {
-          console.log('⚠️ Duplicate chat detected during INIT, keeping first:', chat.id);
-        }
+        if (!uniqueChatsMap.has(chat.id)) uniqueChatsMap.set(chat.id, chat);
       });
-      const uniqueChats = Array.from(uniqueChatsMap.values());
-      
-      console.log('📥 INIT: Processed', action.chats.length, 'chats, removed', (action.chats.length - uniqueChats.length), 'duplicates');
-      
-      return { chats: uniqueChats };
+      return { chats: Array.from(uniqueChatsMap.values()) };
     }
 
     case "RESET":
@@ -355,41 +337,13 @@ function reducer(state, action) {
       const text = action.text.trim();
       if (!text) return state;
 
-      console.log('\n📤 ========== SEND MESSAGE START ==========');
-      console.log('📤 Chat ID:', action.chatId);
-      console.log('📤 Message text:', text);
-
       const target = state.chats.find((c) => c.id === action.chatId);
-      if (!target || target.blocked) {
-        console.log('❌ Chat not found or blocked');
-        return state;
-      }
+      if (!target || target.blocked) return state;
 
-      console.log('📤 Current messages in chat:', target.messages.length);
-      
-      // Prevent duplicate messages - check ALL recent messages (not just last 10)
-      const recentMessages = target.messages.filter(m => 
-        (Date.now() - m.createdAt) < 5000  // Check all messages from last 5 seconds
+      const isDuplicate = target.messages.some(m =>
+        m.text.trim() === text.trim() && (Date.now() - m.createdAt) < 5000
       );
-      
-      const isDuplicate = recentMessages.some(m => {
-        const sameText = m.text.trim() === text.trim();
-        const timeDiff = Date.now() - m.createdAt;
-        console.log('🔍 Checking for duplicate:', {
-          existingText: m.text.substring(0, 30),
-          newText: text.substring(0, 30),
-          sameText,
-          timeDiffMs: timeDiff,
-          withinThreshold: timeDiff < 5000 // 5 seconds threshold
-        });
-        return sameText && timeDiff < 5000;  // 5 second tolerance
-      });
-      
-      if (isDuplicate) {
-        console.log('⚠️ DUPLICATE DETECTED - Skipping message');
-        console.log('⚠️ This prevents the message from being added to state AND backend');
-        return state;
-      }
+      if (isDuplicate) return state;
 
       const msg = {
         id: uid(),
@@ -401,13 +355,6 @@ function reducer(state, action) {
         replyTo: action.replyTo || null,
       };
 
-      console.log('✨ Created new message:', {
-        id: msg.id,
-        tempId: msg.tempId,
-        text: msg.text.substring(0, 30)
-      });
-
-      // ✅ OPTIMISTIC UPDATE: Add message immediately for instant UI feedback
       const chats = state.chats.map((c) =>
         c.id === action.chatId ? { ...c, messages: [...c.messages, msg] } : c
       );
@@ -416,24 +363,16 @@ function reducer(state, action) {
       const rest = chats.filter((c) => c.id !== action.chatId);
       const next = updated ? [updated, ...rest] : chats;
 
-      console.log('✅ Message added to state OPTIMISTICALLY. New count:', updated?.messages?.length || 0);
-      console.log('📤 ========== SEND MESSAGE END ==========\n');
-      
-      // 💾 SAVE TO LOCALSTORAGE IMMEDIATELY
       saveChats(next);
-      
-      // 🕐 MARK THIS CHAT AS "JUST SENT" - prevents immediate reload
-      // Store in a global ref or window property since we can't access refs from context
+
       window.lastMessageSentTime = Date.now();
       window.lastMessageSentChatId = action.chatId;
-      
-      // Save to backend ONLY if not a duplicate
+
       const authUser = getAuthUser();
       if (authUser?.employeeId) {
-        console.log('🌐 Sending to backend...');
         fetch(`${API_URL}/messages`, {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${authUser.token}`,
           },
@@ -442,22 +381,12 @@ function reducer(state, action) {
             senderId: authUser.employeeId,
             text: text
           }),
-          // Add cache control to prevent browser caching
           cache: 'no-cache'
         })
         .then(res => res.json())
-        .then(data => {
-          console.log('✅ Backend saved successfully:', data);
-          if (data.isDuplicate) {
-            console.log('ℹ️ Backend detected duplicate, message already exists');
-          }
-          // ✅ DON'T trigger reload here - let polling handle it naturally
-        })
-        .catch(err => console.error('❌ Backend save failed:', err));
-      } else {
-        console.log('⚠️ No authenticated user, skipping backend save');
+        .catch(err => console.error('Backend save failed:', err));
       }
-      
+
       return { chats: next };
     }
 
@@ -673,36 +602,29 @@ export function ChatProvider({ children }) {
     const init = async () => {
       try {
         const authUser = getAuthUser();
-        
+
         if (!authUser?.employeeId) {
-          console.log('No authenticated user found, using seed data');
-          // Load seed data for unauthenticated users
           dispatch({ type: "INIT", chats: seed });
           setLoading(false);
           return;
         }
-        
-        console.log('👤 Loading employees for user:', authUser.employeeId);
-        
+
         const chats = await initializeChats();
 
         if (Array.isArray(chats) && chats.length > 0) {
-          console.log('💬 Setting chats:', chats.length);
           dispatch({ type: "INIT", chats });
         } else {
-          console.warn('Backend returned no employees, using seed data');
           dispatch({ type: "INIT", chats: seed });
         }
       } catch (error) {
-        console.error("Failed to initialize chats from backend, using seed data:", error);
+        console.error("Failed to initialize chats:", error);
         dispatch({ type: "INIT", chats: seed });
       } finally {
         setLoading(false);
       }
     };
-    
+
     init();
-    
     // Poll periodically so new employees/groups show up without a refresh.
     const pollInterval = setInterval(async () => {
       try {

@@ -133,38 +133,21 @@ export default function ChatPage() {
   const groupAdminsOnly = chat?.kind === "group" && chat?.adminsOnly === true;
   const blockedByAdminsOnly = groupAdminsOnly && !isAdminRole;
 
-  console.log('🎯 Chat selected:', { 
-    chatId, 
-    chatExists: !!chat, 
-    chatName: chat?.name,
-    chatKind: chat?.kind,
-    employeeId: chat?.employeeId,
-    messageCount: chat?.messages?.length 
-  });
-
   // Define ALL callbacks BEFORE any conditional returns
   const onSend = useCallback(() => {
     // CRITICAL: Mutex lock - prevent concurrent sends
     if (isSendingRef.current) {
-      console.log('⛔ BLOCKED: Already sending a message');
       return;
     }
     
     const v = text.trim();
     if (!v || !chat || chat.blocked || blockedByAdminsOnly || isSending) return;
     
-    // Prevent sending same message within 3 seconds (increased from 2)
+    // Prevent sending same message within 3 seconds
     const timeSinceLastMessage = Date.now() - lastMessageSentRef.current.timestamp;
     if (lastMessageSentRef.current.text === v && timeSinceLastMessage < 3000) {
-      console.log('⚠️ Preventing duplicate send:', { 
-        text: v, 
-        lastSent: lastMessageSentRef.current.text,
-        timeDiff: timeSinceLastMessage 
-      });
       return;
     }
-    
-    console.log('🚀 onSend called:', { text: v, chatId: chat.id });
     
     // Set mutex lock
     isSendingRef.current = true;
@@ -172,7 +155,7 @@ export default function ChatPage() {
     
     // Update last sent ref IMMEDIATELY
     lastMessageSentRef.current = { text: v, timestamp: Date.now() };
-    lastMessageSentTimeRef.current = Date.now(); // Track when we sent
+    lastMessageSentTimeRef.current = Date.now();
     
     sendMessage(chat.id, v, replyTo);
     setText("");
@@ -182,8 +165,7 @@ export default function ChatPage() {
     setTimeout(() => {
       isSendingRef.current = false;
       setIsSending(false);
-      console.log('🔓 Released send lock');
-    }, 1000); // 1 second lock
+    }, 1000);
   }, [text, chat, chat?.id, chat?.blocked, isSending, sendMessage, setText]);
 
   const canSend = text.trim().length > 0;
@@ -228,101 +210,46 @@ export default function ChatPage() {
     // Clear last message sent ref when switching chats
     if (chatId !== lastLoadedChatIdRef.current) {
       lastMessageSentRef.current = { text: '', timestamp: 0 };
-      console.log('🔄 Cleared last message ref for new chat');
     }
-    
-    console.log('🔍 Checking chat object:', { 
-      chatId, 
-      chatExists: !!chat, 
-      hasEmployeeId: !!chat?.employeeId,
-      employeeId: chat?.employeeId,
-      chatKind: chat?.kind,
-      fullChat: chat,
-      messageCount: chat?.messages?.length,
-      lastLoadedChatId: lastLoadedChatIdRef.current,
-      timeSinceLastLoad: Date.now() - lastLoadTimeRef.current
-    });
-    
-    if (!chatId || !chat) {
-      console.log('⚠️ Skipping message load - no chatId');
-      return;
-    }
-    
-    // Prevent loading same chat twice within 10 seconds (increased from 5)
+
+    if (!chatId || !chat) return;
+
+    // Prevent loading same chat twice within 10 seconds
     const timeSinceLastLoad = Date.now() - lastLoadTimeRef.current;
-    if (lastLoadedChatIdRef.current === chatId && timeSinceLastLoad < 10000) {
-      console.log('⏭️ Skipping - already loaded this chat recently (within 10s)');
-      return;
-    }
-    
-    // Prevent duplicate loading
-    if (chat.isLoadingMessages) {
-      console.log('⏭️ Already loading messages for this chat');
-      return;
-    }
-    
-    // Don't reload if we already have messages and this is the same chat
-    // This is the key fix - once loaded, don't reload unless chat changes
-    if (lastLoadedChatIdRef.current === chatId && chat.messages && chat.messages.length > 0) {
-      console.log('⏭️ Already loaded messages for this chat, keeping existing:', chat.messages.length);
-      return;
-    }
-    
-    // CRITICAL: Don't reload if we just sent a message (within last 3 seconds)
-    // This prevents the duplicate where optimistic + backend load both add the same message
+    if (lastLoadedChatIdRef.current === chatId && timeSinceLastLoad < 10000) return;
+
+    if (chat.isLoadingMessages) return;
+
+    if (lastLoadedChatIdRef.current === chatId && chat.messages && chat.messages.length > 0) return;
+
     const timeSinceLastSend = Date.now() - (window.lastMessageSentTime || 0);
     const isSameChat = window.lastMessageSentChatId === chatId;
-    
-    if (timeSinceLastSend < 3000 && timeSinceLastSend > 0 && isSameChat) {
-      console.log('⏭️ Skipping message load - just sent a message', timeSinceLastSend, 'ms ago');
-      return;
-    }
-    
-    // Debounce to prevent rapid reloading when switching chats or adding new users
+    if (timeSinceLastSend < 3000 && timeSinceLastSend > 0 && isSameChat) return;
+
     const loadFromBackend = async () => {
       setLoadingMessages(true);
       try {
         const authUser = getAuthUser();
         const myEmployeeId = authUser?.employeeId;
-        
-        console.log('🔵 Loading messages for chat:', chatId, 'user:', myEmployeeId);
-        
-        // Fetch messages for this specific user
         const query = chat.kind === "dm" && myEmployeeId ? `?userId=${myEmployeeId}` : "";
         const response = await fetch(`${API_URL}/messages/${chatId}${query}`);
         const data = await response.json();
-        
-        console.log('🟢 Loaded messages from backend:', data.messages?.length || 0);
-        
+
         if (data.success && Array.isArray(data.messages)) {
           const backendMessages = data.messages.map((msg) => normalizeMessage(msg, myEmployeeId));
-          
-          console.log('💾 Processed messages:', backendMessages.length);
-          
-          // Update tracking refs BEFORE calling loadMessages
           lastLoadedChatIdRef.current = chatId;
           lastLoadTimeRef.current = Date.now();
-          
-          // Use context function to load messages
           loadMessages(chatId, backendMessages);
         }
       } catch (error) {
-        console.error('❌ Failed to load messages from backend:', error);
+        console.error('Failed to load messages:', error);
       } finally {
         setLoadingMessages(false);
       }
     };
-    
-    // Small delay to ensure chat is loaded first and prevent rapid fire requests
-    const timer = setTimeout(() => {
-      console.log('⏱️ Debounced message load starting...');
-      loadFromBackend();
-    }, 300);
-    
-    return () => {
-      clearTimeout(timer);
-      console.log('🧹 Cleanup: cancelled previous message load');
-    };
+
+    const timer = setTimeout(loadFromBackend, 300);
+    return () => clearTimeout(timer);
   }, [chatId, chat?.kind, chat?.messages?.length]);
 
   useEffect(() => {
@@ -435,29 +362,14 @@ export default function ChatPage() {
   // Group messages by day - with duplicate prevention
   const groups = useMemo(() => {
     if (!chat?.messages?.length) return [];
-    
-    console.log('📦 Grouping messages:', { 
-      totalMessages: chat.messages.length,
-      messageIds: chat.messages.map(m => ({ id: m.id, text: m.text.substring(0, 20), createdAt: m.createdAt }))
-    });
-    
-    // Remove duplicates by message ID before grouping
+
     const uniqueMessageMap = new Map();
     chat.messages.forEach(msg => {
-      // Keep the first occurrence of each message ID
       if (!uniqueMessageMap.has(msg.id)) {
         uniqueMessageMap.set(msg.id, msg);
-      } else {
-        console.warn('⚠️ Duplicate message ID detected:', {
-          id: msg.id,
-          text: msg.text.substring(0, 30),
-          existingMsg: uniqueMessageMap.get(msg.id)
-        });
       }
     });
-    
-    console.log('✅ Unique messages after deduplication:', uniqueMessageMap.size);
-    
+
     const map = new Map();
     for (const m of uniqueMessageMap.values()) {
       const day = formatDay(m.createdAt);
@@ -682,7 +594,6 @@ export default function ChatPage() {
       const data = await response.json();
       
       if (data.success) {
-        console.log('✅ File uploaded successfully:', data.message);
         receiveMessage(data.message);
         setShowAttachMenu(false);
       } else {
@@ -734,12 +645,11 @@ export default function ChatPage() {
     .then(res => res.json())
     .then(data => {
       if (data.success) {
-        console.log('✅ Link sent successfully:', data.message);
         receiveMessage(data.message);
       }
     })
     .catch(error => {
-      console.error('❌ Error sending link:', error);
+      console.error('Error sending link:', error);
       alert('Failed to send link');
     });
     
@@ -791,22 +701,14 @@ export default function ChatPage() {
 
   const handleForward = () => {
     if (selectedMsgs.size === 0 || !forwardTargetId) {
-      console.log('⚠️ Cannot forward: no messages selected or no target');
       alert('Please select a chat to forward to');
       return;
     }
-    
-    console.log('📤 Starting forward:', { 
-      selectedCount: selectedMsgs.size, 
-      targetId: forwardTargetId 
-    });
-    
-    // Extract text from selected messages
+
     const texts = [...selectedMsgs].map(id => {
       for (const g of groups) {
         const m = g.messages.find(msg => String(msg.id) === String(id));
         if (m) {
-          // Use rawText if text is JSX, otherwise use text directly
           if (typeof m.text === "string") return m.text;
           if (m.rawText && typeof m.rawText === "string") return m.rawText;
           return String(m.text ?? "");
@@ -815,24 +717,17 @@ export default function ChatPage() {
       return "";
     }).filter(Boolean);
 
-    console.log('📝 Messages to forward:', texts.length, 'messages');
-
     if (texts.length === 0) {
       alert('No valid messages to forward');
       return;
     }
 
-    // Send each message with a small delay to prevent race conditions
     texts.forEach((text, index) => {
       setTimeout(() => {
-        console.log(`📨 Forwarding message ${index + 1}/${texts.length}:`, text.substring(0, 50));
         sendMessage(forwardTargetId, `↪ ${text}`);
-      }, index * 300); // 300ms delay between each message
+      }, index * 300);
     });
-    
-    console.log('✅ Forward initiated for', texts.length, 'messages');
-    
-    // Close modal and clear selection after a short delay
+
     setTimeout(() => {
       setShowForwardModal(false);
       clearSelection();
