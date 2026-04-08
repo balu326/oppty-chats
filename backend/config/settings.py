@@ -140,34 +140,32 @@ SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SECURE = not DEBUG
 
 frontend_url = os.getenv("FRONTEND_URL")
-backend_url = os.getenv("RENDER_EXTERNAL_URL", "")  # Render sets this automatically
+backend_url = os.getenv("RENDER_EXTERNAL_URL", "")
 extra_origins = [o.strip() for o in os.getenv("CORS_ORIGIN", "").split(",") if o.strip()]
 if frontend_url:
     extra_origins.append(frontend_url)
 if backend_url:
     extra_origins.append(backend_url)
 
-unique_origins = list(dict.fromkeys(o for o in extra_origins if o))
+# Always include the production frontend — hardcoded as guaranteed fallback
+ALWAYS_ALLOWED = [
+    "https://oppty-chats.vercel.app",
+    "http://localhost:5173",
+    "http://localhost:3000",
+]
 
-CSRF_TRUSTED_ORIGINS = unique_origins if unique_origins else []
+all_origins = list(dict.fromkeys(extra_origins + ALWAYS_ALLOWED))
 
-# Always trust the backend's own domain for Django admin
+CORS_ALLOWED_ORIGINS = all_origins
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = list(default_headers) + ["employee-id"]
+CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(all_origins))
+
+# Also trust any ALLOWED_HOSTS as CSRF origins
 allowed_hosts_list = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "").split(",") if h.strip()]
 for host in allowed_hosts_list:
     origin = f"https://{host}"
     if origin not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(origin)
-
-if unique_origins:
-    CORS_ALLOWED_ORIGINS = unique_origins
-    # Also always include the Vercel app domain if not already present
-    vercel_origin = "https://oppty-chats.vercel.app"
-    if vercel_origin not in CORS_ALLOWED_ORIGINS:
-        CORS_ALLOWED_ORIGINS.append(vercel_origin)
-    if vercel_origin not in CSRF_TRUSTED_ORIGINS:
-        CSRF_TRUSTED_ORIGINS.append(vercel_origin)
-else:
-    CORS_ALLOW_ALL_ORIGINS = True
-
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_HEADERS = list(default_headers) + ["employee-id"]
