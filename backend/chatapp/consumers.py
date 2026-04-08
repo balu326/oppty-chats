@@ -34,7 +34,11 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
         message = await self._create_message(self.employee.id, text)
         serialized = await self._serialize_message(message)
-        await self.chat_message({"message": serialized})
+        # Broadcast to all members in the room (including sender)
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {"type": "chat_message", "message": serialized}
+        )
 
     async def chat_message(self, event):
         await self.send_json(event["message"])

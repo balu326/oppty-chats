@@ -592,7 +592,7 @@ export default function ChatPage() {
       const data = await response.json();
       
       if (data.success) {
-        receiveMessage(data.message);
+        // Don't call receiveMessage here — WebSocket will deliver it
         setShowAttachMenu(false);
       } else {
         console.error('❌ Upload failed:', data.message);
@@ -642,9 +642,10 @@ export default function ChatPage() {
     })
     .then(res => res.json())
     .then(data => {
-      if (data.success) {
-        receiveMessage(data.message);
+      if (!data.success) {
+        console.error('Error sending link:', data.message);
       }
+      // Don't call receiveMessage here — WebSocket will deliver it
     })
     .catch(error => {
       console.error('Error sending link:', error);

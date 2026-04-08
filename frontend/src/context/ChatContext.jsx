@@ -347,13 +347,14 @@ function reducer(state, action) {
       );
       if (isDuplicate) return state;
 
+      const tempId = `temp_${Date.now()}_${Math.random().toString(16).slice(2)}`;
       const msg = {
-        id: uid(),
+        id: tempId,
         chatId: action.chatId,
         sender: "me",
         text,
         createdAt: Date.now(),
-        tempId: `temp_${Date.now()}`,
+        tempId,
         replyTo: action.replyTo || null,
       };
 
@@ -399,22 +400,26 @@ function reducer(state, action) {
       const next = state.chats.map((chat) => {
         if (String(chat.id) !== String(incomingMessage.chatId)) return chat;
 
+        // Already have this exact ID
         const alreadyExists = (chat.messages || []).some(
           (message) => String(message.id) === String(incomingMessage.id)
         );
         if (alreadyExists) return chat;
 
-        const mergedMessages = (chat.messages || []).filter((message) => {
+        // Remove optimistic/temp duplicates: same sender + same text + within 10s
+        const filtered = (chat.messages || []).filter((message) => {
+          const isTemp = String(message.id).startsWith("temp_") || String(message.tempId || "").startsWith("temp_");
           const sameSender = message.sender === incomingMessage.sender;
           const sameText = (message.text || "").trim() === (incomingMessage.text || "").trim();
-          const closeInTime = Math.abs((message.createdAt || 0) - (incomingMessage.createdAt || 0)) < 5000;
-          const isOptimistic = String(message.id || "").startsWith("temp_");
-          return !(isOptimistic && sameSender && sameText && closeInTime);
+          const closeInTime = Math.abs((message.createdAt || 0) - (incomingMessage.createdAt || 0)) < 10000;
+          // Drop temp messages that match the confirmed backend message
+          if (isTemp && sameSender && sameText && closeInTime) return false;
+          return true;
         });
 
         return {
           ...chat,
-          messages: [...mergedMessages, incomingMessage].sort((a, b) => a.createdAt - b.createdAt),
+          messages: [...filtered, incomingMessage].sort((a, b) => a.createdAt - b.createdAt),
         };
       });
 
