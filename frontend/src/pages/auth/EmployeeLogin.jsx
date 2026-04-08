@@ -56,17 +56,34 @@ export default function EmployeeLogin() {
     setLoginError("");
     setIsLoggingIn(true);
 
-    try {
+    const attemptLogin = async (attempt) => {
       const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: loginForm.email,
-          password: loginForm.password
-        })
+          password: loginForm.password,
+        }),
+        signal: AbortSignal.timeout(30000), // 30s timeout per attempt
       });
+      return response;
+    };
+
+    try {
+      let response;
+      try {
+        response = await attemptLogin(1);
+      } catch (firstErr) {
+        // Server might be waking up (Render free tier cold start) — retry once
+        if (firstErr instanceof TypeError || firstErr.name === "TimeoutError") {
+          setLoginError("Server is waking up, retrying...");
+          await new Promise((r) => setTimeout(r, 5000));
+          setLoginError("");
+          response = await attemptLogin(2);
+        } else {
+          throw firstErr;
+        }
+      }
 
       const data = await response.json();
 
@@ -74,7 +91,6 @@ export default function EmployeeLogin() {
         throw new Error(data.message || "Login failed");
       }
 
-      // Store auth token and employee info
       localStorage.setItem(
         "employeeAuth",
         JSON.stringify({
@@ -93,8 +109,8 @@ export default function EmployeeLogin() {
       }, 1800);
     } catch (error) {
       console.error("Login error:", error);
-      if (error instanceof TypeError) {
-        setLoginError("Cannot reach the backend. Start the Django server on http://localhost:8000 and try again.");
+      if (error instanceof TypeError || error.name === "TimeoutError") {
+        setLoginError("Unable to connect to the server. Please try again in a moment.");
       } else {
         setLoginError(error.message || "Login failed. Please try again.");
       }
