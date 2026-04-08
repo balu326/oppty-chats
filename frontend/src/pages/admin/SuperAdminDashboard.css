@@ -836,22 +836,66 @@
 }
 
 /* ── Dark mode overrides ─────────────────────────────────────────────────── */
-[data-theme="dark"] .superAdminFeedItem,
-[data-theme="dark"] .superAdminModal,
-[data-theme="dark"] .monitorShell,
-[data-theme="dark"] .monitorList,
-[data-theme="dark"] .monitorListHeader,
-[data-theme="dark"] .monitorMsgText,
-[data-theme="dark"] .monitorConvHeader,
-[data-theme="dark"] .monitorConvMessages {
+
+/* Page & shell backgrounds */
+[data-theme="dark"] .superAdminPage {
+  background: var(--bg);
+}
+
+/* Hero, panels, empty state */
+[data-theme="dark"] .superAdminHero,
+[data-theme="dark"] .superAdminPanel,
+[data-theme="dark"] .superAdminEmptyState {
   background: var(--panel);
   border-color: var(--border);
+}
+
+/* Cards */
+[data-theme="dark"] .superAdminCard,
+[data-theme="dark"] .superAdminMiniCard,
+[data-theme="dark"] .superAdminHighlight {
+  background: var(--panel-2);
+  border-color: var(--border);
+}
+
+/* Headings & body text */
+[data-theme="dark"] .superAdminHero h1,
+[data-theme="dark"] .superAdminCard h2,
+[data-theme="dark"] .superAdminCard h3,
+[data-theme="dark"] .superAdminEmptyState h1,
+[data-theme="dark"] .superAdminStatCard strong,
+[data-theme="dark"] .superAdminMiniCard strong,
+[data-theme="dark"] .superAdminFeedItem strong,
+[data-theme="dark"] .superAdminForm span {
   color: var(--text);
 }
 
-[data-theme="dark"] .monitorConvRow:hover { background: var(--wa-list-hover); }
-[data-theme="dark"] .monitorConvRow.active { background: var(--wa-list-active); }
+[data-theme="dark"] .superAdminHero p,
+[data-theme="dark"] .superAdminCard p,
+[data-theme="dark"] .superAdminCard small,
+[data-theme="dark"] .superAdminFeedItem small,
+[data-theme="dark"] .superAdminCardHeader p,
+[data-theme="dark"] .superAdminStatCard span,
+[data-theme="dark"] .superAdminMiniCard span {
+  color: var(--text-secondary);
+}
 
+/* Tabs */
+[data-theme="dark"] .superAdminTabs {
+  background: var(--panel);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .superAdminTab {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .superAdminTab.active {
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+/* Stat cards */
 [data-theme="dark"] .superAdminStatCard,
 [data-theme="dark"] .superAdminStatCard.peach,
 [data-theme="dark"] .superAdminStatCard.sky,
@@ -861,6 +905,52 @@
   border-color: var(--border);
 }
 
+/* Ghost button */
+[data-theme="dark"] .superAdminBtn.ghost {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+/* Close button */
+[data-theme="dark"] .superAdminClose {
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+/* Logo badge */
+[data-theme="dark"] .superAdminLogoBadge {
+  background: var(--panel-2);
+}
+
+/* Avatar */
+[data-theme="dark"] .superAdminAvatar {
+  background: var(--panel-2);
+  color: #ffb07a;
+}
+
+/* Modal */
+[data-theme="dark"] .superAdminModal {
+  background: var(--panel);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .superAdminForm input,
+[data-theme="dark"] .superAdminForm textarea,
+[data-theme="dark"] .superAdminForm select {
+  background: var(--panel-2);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* Feed items */
+[data-theme="dark"] .superAdminFeedItem {
+  background: var(--panel-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+/* Select & search */
 [data-theme="dark"] .superAdminSelect,
 [data-theme="dark"] .monitorSearch {
   background: var(--panel-2);
@@ -868,7 +958,113 @@
   border-color: var(--border);
 }
 
-[data-theme="dark"] .pill.employee { background: rgba(20, 88, 200, 0.2); color: #7eb3ff; }
-[data-theme="dark"] .pill.admin    { background: rgba(201, 95, 23, 0.2); color: #ffb07a; }
-[data-theme="dark"] .pill.superadmin { background: rgba(138, 27, 179, 0.2); color: #d48aff; }
-[data-theme="dark"] .pill.neutral  { background: var(--panel-2); color: var(--text-secondary); }
+/* Pills */
+[data-theme="dark"] .pill.employee  { background: rgba(20, 88, 200, 0.2);  color: #7eb3ff; }
+[data-theme="dark"] .pill.admin     { background: rgba(201, 95, 23, 0.2);  color: #ffb07a; }
+[data-theme="dark"] .pill.superadmin{ background: rgba(138, 27, 179, 0.2); color: #d48aff; }
+[data-theme="dark"] .pill.neutral   { background: var(--panel-2); color: var(--text-secondary); }
+[data-theme="dark"] .pill.light     { background: var(--panel-2); color: var(--text-secondary); }
+
+/* ── Monitor (Chat Monitor) ── */
+[data-theme="dark"] .monitorShell {
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .monitorList {
+  background: var(--panel);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .monitorListHeader {
+  background: var(--panel-2);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .monitorListTitle {
+  color: var(--text);
+}
+
+[data-theme="dark"] .monitorConvRow {
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .monitorConvRow:hover  { background: var(--wa-list-hover); }
+[data-theme="dark"] .monitorConvRow.active { background: var(--wa-list-active); }
+
+[data-theme="dark"] .monitorConvName {
+  color: var(--text);
+}
+
+[data-theme="dark"] .monitorConvPreview {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .monitorConvCount {
+  background: var(--panel-2);
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .monitorConvAvatar {
+  background: var(--panel-2);
+  color: #ffb07a;
+}
+
+[data-theme="dark"] .monitorChat {
+  background: var(--panel);
+}
+
+[data-theme="dark"] .monitorChatEmpty {
+  background: var(--bg);
+}
+
+[data-theme="dark"] .monitorChatEmptyTitle {
+  color: var(--text);
+}
+
+[data-theme="dark"] .monitorChatHeader {
+  background: var(--panel-2);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .monitorChatHeaderAvatar {
+  background: var(--panel-2);
+  color: #ffb07a;
+}
+
+[data-theme="dark"] .monitorChatHeaderName {
+  color: var(--text);
+}
+
+[data-theme="dark"] .monitorReadOnlyBadge {
+  background: var(--panel-2);
+  color: #ffb07a;
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .monitorMessages {
+  background: var(--wa-chat-bg);
+}
+
+[data-theme="dark"] .monitorMsgText {
+  background: var(--wa-bubble-in);
+  border-color: var(--border);
+  color: var(--wa-bubble-in-text);
+}
+
+[data-theme="dark"] .monitorMsgAvatar {
+  background: var(--panel-2);
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .monitorMsgFile,
+[data-theme="dark"] .monitorMsgLink {
+  background: var(--panel-2);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .monitorConvHeader,
+[data-theme="dark"] .monitorConvMessages {
+  background: var(--panel);
+  border-color: var(--border);
+  color: var(--text);
+}

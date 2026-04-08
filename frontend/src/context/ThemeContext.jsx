@@ -24,6 +24,8 @@ function applyTheme(mode) {
     root.style.setProperty("--text",              "#e9edef");
     root.style.setProperty("--text-secondary",    "#8696a0");
     root.style.setProperty("--text-muted",        "#667781");
+    root.style.setProperty("--accent",            "#e97b2c");
+    root.style.setProperty("--accent-soft",       "rgba(233,123,44,0.15)");
     root.style.setProperty("--wa-header",         "#202c33");
     root.style.setProperty("--wa-chat-bg",        "#0d1117");
     root.style.setProperty("--wa-bubble-in",      "#202c33");
@@ -41,6 +43,8 @@ function applyTheme(mode) {
     root.style.setProperty("--text",              "#111b21");
     root.style.setProperty("--text-secondary",    "#667781");
     root.style.setProperty("--text-muted",        "#8696a0");
+    root.style.setProperty("--accent",            "#e97b2c");
+    root.style.setProperty("--accent-soft",       "rgba(233,123,44,0.1)");
     root.style.setProperty("--wa-header",         "#f0f2f5");
     root.style.setProperty("--wa-chat-bg",        "#efeae2");
     root.style.setProperty("--wa-bubble-in",      "#ffffff");
