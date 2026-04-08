@@ -114,6 +114,7 @@ export default function ChatPage() {
   const lastMessageSentRef = useRef({ text: '', timestamp: 0 });
   const lastMessageSentTimeRef = useRef(0); // Track when we last sent
   const isSendingRef = useRef(false); // Mutex lock to prevent concurrent sends
+  const receiveMessageRef = useRef(receiveMessage);
 
   // Define ALL refs NEXT
   const endRef = useRef(null);
@@ -325,6 +326,10 @@ export default function ChatPage() {
   }, [chatId, chat?.kind, chat?.messages?.length]);
 
   useEffect(() => {
+    receiveMessageRef.current = receiveMessage;
+  }, [receiveMessage]);
+
+  useEffect(() => {
     const authUser = getAuthUser();
     if (!chat?.id || !authUser?.token) return undefined;
 
@@ -342,7 +347,7 @@ export default function ChatPage() {
     socket.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data);
-        receiveMessage(payload);
+        receiveMessageRef.current(payload);
       } catch (error) {
         console.error("WebSocket message parse error:", error);
       }
@@ -357,7 +362,7 @@ export default function ChatPage() {
     return () => {
       socket.close();
     };
-  }, [chat?.id, receiveMessage]);
+  }, [chat?.id]);
 
   useEffect(() => {
     if (searchOpen) searchInputRef.current?.focus();
