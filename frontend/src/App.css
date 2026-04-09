@@ -1851,3 +1851,16 @@
   bottom: 0;
   right: 0;
 }
+
+/* ── Chat list preview ──────────────────────────────────────────────────── */
+.preview-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.preview-you {
+  color: var(--text-secondary);
+  font-weight: 500;
+}

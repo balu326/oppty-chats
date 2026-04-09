@@ -96,10 +96,19 @@ export default function ChatListPage({ mode = "dm" }) {
                 <div className="chatPreview">
                   {chat.blocked ? (
                     <span className="muted">Blocked by admin</span>
-                  ) : last?.text ? (
-                    last.text
+                  ) : last ? (
+                    <span className="preview-text">
+                      {last.sender === "me" && <span className="preview-you">You: </span>}
+                      {last.text
+                        ? last.text
+                        : last.attachment?.type === "photo" ? "📷 Photo"
+                        : last.attachment?.type === "video" ? "🎥 Video"
+                        : last.attachment?.type === "link"  ? "🔗 Link"
+                        : last.attachment ? "📄 File"
+                        : ""}
+                    </span>
                   ) : (
-                    <span className="muted">No messages yet</span>
+                    <span className="muted">Tap to start chatting</span>
                   )}
                   {unread > 0 && (
                     <span className="unreadBadge">{unread > 99 ? "99+" : unread}</span>
