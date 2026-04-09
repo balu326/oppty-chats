@@ -522,6 +522,44 @@ class MessageListView(APIView):
         count = messages.count()
         return Response({"success": True, "messages": MessageSerializer(messages, many=True, context={"request": request}).data, "totalFetched": count, "uniqueCount": count})
 
+    def delete(self, request, chat_id):
+        """Delete a single message by ID — sender or superadmin only."""
+        try:
+            message = Message.objects.get(pk=chat_id)  # chat_id param reused as message_id here
+        except Message.DoesNotExist:
+            return Response({"message": "Message not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        auth_user = getattr(request, "user", None)
+        is_super = auth_user and getattr(auth_user, "role", "") == "superadmin"
+        is_sender = auth_user and str(getattr(auth_user, "pk", "")) == str(message.sender_id)
+
+        if not (is_super or is_sender):
+            return Response({"message": "Not allowed"}, status=status.HTTP_403_FORBIDDEN)
+
+        message.delete()
+        return Response({"success": True})
+
+
+class MessageDeleteView(APIView):
+    """DELETE /messages/<id>/delete — sender or superadmin only."""
+    authentication_classes = [SessionTokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, message_id):
+        try:
+            message = Message.objects.get(pk=message_id)
+        except Message.DoesNotExist:
+            return Response({"message": "Message not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        is_super = request.user.role in {"superadmin", "admin"}
+        is_sender = str(request.user.pk) == str(message.sender_id)
+
+        if not (is_super or is_sender):
+            return Response({"message": "Not allowed"}, status=status.HTTP_403_FORBIDDEN)
+
+        message.delete()
+        return Response({"success": True})
+
 
 class MessageDetailView(APIView):
     permission_classes = [permissions.AllowAny]

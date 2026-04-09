@@ -811,8 +811,17 @@ export default function ChatPage() {
     }, 500);
   };
 
-  const handleDeleteMessage = (msgId) => {
+  const handleDeleteMessage = async (msgId) => {
     deleteMessage(chatId, msgId);
+    try {
+      const auth = getAuthUser();
+      await fetch(`${API_URL}/messages/${msgId}/delete`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${auth?.token}` },
+      });
+    } catch (e) {
+      console.error("Failed to delete message from backend:", e);
+    }
   };
 
   const handleBookmark = async (message) => {
