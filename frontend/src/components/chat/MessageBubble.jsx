@@ -14,6 +14,48 @@ function resolveUrl(url) {
   return `${base}${url}`;
 }
 
+// Detect and parse meeting messages
+function parseMeetMessage(text) {
+  if (!text || !text.startsWith("📅 Meeting:")) return null;
+  const lines = text.split("\n");
+  const title = lines[0]?.replace("📅 Meeting:", "").trim();
+  const time  = lines[1]?.replace("🕐", "").trim();
+  const link  = lines[2]?.replace("🔗", "").trim();
+  if (!title || !link) return null;
+  return { title, time, link };
+}
+
+function MeetCard({ meet, mine }) {
+  return (
+    <div className={`meetCard ${mine ? "meetCard--mine" : ""}`}>
+      <div className="meetCard__header">
+        <svg viewBox="0 0 48 48" width="22" height="22" style={{ flexShrink: 0 }}>
+          <path fill="#4285F4" d="M44 24c0-1.3-.1-2.5-.3-3.7H24v7h11.3c-.5 2.5-1.9 4.6-4 6v5h6.5C41.2 35 44 30 44 24z"/>
+          <path fill="#34A853" d="M24 44c5.5 0 10.1-1.8 13.5-4.9l-6.5-5c-1.8 1.2-4.1 1.9-7 1.9-5.4 0-9.9-3.6-11.5-8.5H5.8v5.2C9.1 39.8 16 44 24 44z"/>
+          <path fill="#FBBC05" d="M12.5 27.5c-.4-1.2-.7-2.5-.7-3.8s.2-2.6.7-3.8v-5.2H5.8C4.6 17.1 4 20.5 4 24s.6 6.9 1.8 9.3l6.7-5.8z"/>
+          <path fill="#EA4335" d="M24 12.5c3 0 5.7 1 7.8 3l5.8-5.8C34.1 6.5 29.4 4.5 24 4.5 16 4.5 9.1 8.7 5.8 15.2l6.7 5.2c1.6-4.9 6.1-7.9 11.5-7.9z"/>
+        </svg>
+        <div>
+          <div className="meetCard__label">Google Meet</div>
+          <div className="meetCard__title">{meet.title}</div>
+        </div>
+      </div>
+      {meet.time && (
+        <div className="meetCard__time">🕐 {meet.time}</div>
+      )}
+      <a
+        href={meet.link}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="meetCard__join"
+        onClick={e => e.stopPropagation()}
+      >
+        Join Meeting ▶
+      </a>
+    </div>
+  );
+}
+
 function AttachmentView({ attachment }) {
   if (!attachment) return null;
   const { type, url, fileName } = attachment;
@@ -204,9 +246,11 @@ export default function MessageBubble({ message, onReply, onDelete, onReact, onS
           {message.pinned && (
             <div className="pinnedIndicator">📌 Pinned</div>
           )}
-          {message.text && typeof message.text === "string" && message.text.trim() && (
-            <div className="bubbleText">{message.text}</div>
-          )}
+          {message.text && typeof message.text === "string" && message.text.trim() && (() => {
+            const meet = parseMeetMessage(message.text);
+            if (meet) return <MeetCard meet={meet} mine={mine} />;
+            return <div className="bubbleText">{message.text}</div>;
+          })()}
           {message.text && typeof message.text !== "string" && (
             <div className="bubbleText">{message.text}</div>
           )}
