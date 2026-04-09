@@ -205,7 +205,14 @@ export default function MessageBubble({ message, onReply, onDelete, onReact, onS
           )}
           <div className="bubbleMeta">
             {formatTime(message.createdAt)}
-            {mine && <span className="readTick">{message.read ? "✓✓" : "✓"}</span>}
+            {mine && (
+              <span className={`readTick ${message.isRead ? "readTick--blue" : ""}`}>
+                <svg width="16" height="11" viewBox="0 0 16 11" fill="none">
+                  <path d="M1 5.5L4.5 9L10 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M6 5.5L9.5 9L15 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </span>
+            )}
           </div>
         </div>
 

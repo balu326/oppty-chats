@@ -77,12 +77,15 @@ export default function ChatListPage({ mode = "dm" }) {
               className={({ isActive }) => `chatRow ${isActive ? "active" : ""}`}
               role="listitem"
             >
-              <img className="avatar" src={chat.avatarUrl} alt=""
-                onError={(e) => { e.target.style.display="none"; e.target.nextSibling.style.display="flex"; }}
-              />
-              <span className="avatarInitials" style={{ display:"none", width:46, height:46, borderRadius:"50%", background:"#ff6b35", color:"#fff", fontSize:18, fontWeight:700, alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                {(chat.name||"?").slice(0,1).toUpperCase()}
-              </span>
+              <div className="avatarWrap">
+                <img className="avatar" src={chat.avatarUrl} alt=""
+                  onError={(e) => { e.target.style.display="none"; e.target.nextSibling.style.display="flex"; }}
+                />
+                <span className="avatarInitials" style={{ display:"none", width:46, height:46, borderRadius:"50%", background:"#ff6b35", color:"#fff", fontSize:18, fontWeight:700, alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                  {(chat.name||"?").slice(0,1).toUpperCase()}
+                </span>
+                {chat.isOnline && <span className="onlineDot" />}
+              </div>
 
               <div className="chatRowBody">
                 <div className="chatRowTop">

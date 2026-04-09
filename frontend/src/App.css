@@ -1814,3 +1814,40 @@
 [data-theme="dark"] .chatRow:hover {
   background: var(--wa-list-hover);
 }
+
+/* ── Read ticks ─────────────────────────────────────────────────────────── */
+.readTick {
+  display: inline-flex;
+  align-items: center;
+  color: #8696a0;
+  margin-left: 2px;
+  flex-shrink: 0;
+}
+
+.readTick--blue {
+  color: #53bdeb;
+}
+
+/* ── Online dot on avatar ───────────────────────────────────────────────── */
+.avatarWrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.onlineDot {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #25d366;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px rgba(37,211,102,0.3);
+}
+
+.chatRow .onlineDot {
+  bottom: 0;
+  right: 0;
+}

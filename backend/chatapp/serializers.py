@@ -34,10 +34,11 @@ class EmployeeSerializer(serializers.ModelSerializer):
     group = GroupSummarySerializer(read_only=True)
     canCreateGroups = serializers.SerializerMethodField()
     avatarUrl = serializers.SerializerMethodField()
+    isOnline = serializers.BooleanField(source="is_online", read_only=True)
 
     class Meta:
         model = Employee
-        fields = ["_id", "email", "name", "role", "canCreateGroups", "avatarUrl", "group", "createdAt"]
+        fields = ["_id", "email", "name", "role", "canCreateGroups", "avatarUrl", "isOnline", "group", "createdAt"]
 
     def get_canCreateGroups(self, obj):
         return obj.role in {Employee.ROLE_ADMIN, Employee.ROLE_SUPERADMIN} or obj.can_create_groups
@@ -111,12 +112,13 @@ class MessageSerializer(serializers.ModelSerializer):
     createdAt = serializers.DateTimeField(source="created_at", read_only=True)
     timestamp = serializers.DateTimeField(source="created_at", read_only=True)
     attachment = serializers.SerializerMethodField()
+    isRead = serializers.BooleanField(source="is_read", read_only=True)
 
     class Meta:
         model = Message
         fields = [
             "_id", "chatId", "sender", "receiver",
-            "text", "content", "attachment", "createdAt", "timestamp",
+            "text", "content", "attachment", "isRead", "createdAt", "timestamp",
         ]
 
     def get_attachment(self, obj):

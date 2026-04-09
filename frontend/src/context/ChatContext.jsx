@@ -556,6 +556,29 @@ function reducer(state, action) {
       return { chats: next };
     }
 
+    case "MARK_MESSAGES_READ": {
+      // Mark all messages in a chat as read
+      const next = state.chats.map((chat) => {
+        if (String(chat.id) !== String(action.chatId)) return chat;
+        return {
+          ...chat,
+          messages: chat.messages.map((m) =>
+            m.sender === "me" ? { ...m, isRead: true } : m
+          ),
+        };
+      });
+      return { chats: next };
+    }
+
+    case "SET_ONLINE": {
+      // Update online status for a chat (DM)
+      const next = state.chats.map((chat) => {
+        if (String(chat.employeeId) !== String(action.employeeId)) return chat;
+        return { ...chat, isOnline: action.isOnline, lastSeen: action.isOnline ? "" : "last seen recently" };
+      });
+      return { chats: next };
+    }
+
     case "TOGGLE_BLOCK_CHAT": {
       if (!isSystemAdmin()) return state;
       const next = state.chats.map((chat) =>
@@ -724,6 +747,8 @@ export function ChatProvider({ children }) {
         dispatch({ type: "REMOVE_GROUP_MEMBER", chatId, memberId });
       },
       loadMessages: (chatId, messages) => dispatch({ type: "LOAD_MESSAGES", payload: { chatId, messages } }),
+      markMessagesRead: (chatId) => dispatch({ type: "MARK_MESSAGES_READ", chatId }),
+      setOnline: (employeeId, isOnline) => dispatch({ type: "SET_ONLINE", employeeId, isOnline }),
       receiveMessage: (message) => {
         const normalized = normalizeBackendMessage(message, getAuthUser()?.employeeId);
         // Show popup only for messages from others (not sent by me)

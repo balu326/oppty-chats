@@ -30,6 +30,7 @@ class Employee(models.Model):
     bio = models.TextField(blank=True, default="")
     otp_value = models.CharField(max_length=6, blank=True, default="")
     otp_expires_at = models.DateTimeField(null=True, blank=True)
+    is_online = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -108,6 +109,7 @@ class Message(models.Model):
         Employee, null=True, blank=True, on_delete=models.SET_NULL, related_name="received_messages",
     )
     text = models.TextField(blank=True, default="")
+    is_read = models.BooleanField(default=False)
     attachment_type = models.CharField(max_length=20, choices=ATTACHMENT_CHOICES, blank=True, default="")
     attachment_url = models.CharField(max_length=500, blank=True, default="")
     attachment_file_name = models.CharField(max_length=255, blank=True, default="")

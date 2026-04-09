@@ -21,6 +21,7 @@ function normalizeMessage(msg, myEmployeeId) {
     senderName: msg.sender?.name || "Unknown",
     senderAvatar: msg.sender?.avatarUrl || null,
     attachment: msg.attachment || null,
+    isRead: msg.isRead || msg.is_read || false,
   };
 }
 
@@ -70,6 +71,8 @@ export default function ChatPage() {
     loadMessages,
     receiveMessage,
     markRead,
+    markMessagesRead,
+    setOnline,
     isAdmin,
     loading,
     chats,
@@ -112,9 +115,12 @@ export default function ChatPage() {
 
   // Refs to prevent duplicate message sends
   const lastMessageSentRef = useRef({ text: '', timestamp: 0 });
-  const lastMessageSentTimeRef = useRef(0); // Track when we last sent
-  const isSendingRef = useRef(false); // Mutex lock to prevent concurrent sends
+  const lastMessageSentTimeRef = useRef(0);
+  const isSendingRef = useRef(false);
   const receiveMessageRef = useRef(receiveMessage);
+  const markMessagesReadRef = useRef(markMessagesRead);
+  const setOnlineRef = useRef(setOnline);
+  const socketRef = useRef(null);
 
   // Define ALL refs NEXT
   const endRef = useRef(null);
@@ -252,7 +258,9 @@ export default function ChatPage() {
 
   useEffect(() => {
     receiveMessageRef.current = receiveMessage;
-  }, [receiveMessage]);
+    markMessagesReadRef.current = markMessagesRead;
+    setOnlineRef.current = setOnline;
+  }, [receiveMessage, markMessagesRead, setOnline]);
 
   useEffect(() => {
     const authUser = getAuthUser();
@@ -262,29 +270,41 @@ export default function ChatPage() {
     const socket = new WebSocket(
       `${socketBaseUrl}/ws/chat/${encodeURIComponent(chat.id)}/?token=${encodeURIComponent(authUser.token)}`
     );
+    socketRef.current = socket;
     let opened = false;
 
     socket.onopen = () => {
       opened = true;
       setWebsocketAvailable(true);
+      // Send read receipt when chat opens
+      socket.send(JSON.stringify({
+        type: "read",
+        chatId: chat.id,
+        readerId: authUser.employeeId,
+      }));
     };
 
     socket.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data);
-        receiveMessageRef.current(payload);
+        if (payload.type === "presence") {
+          setOnlineRef.current(payload.employeeId, payload.isOnline);
+        } else if (payload.type === "read") {
+          markMessagesReadRef.current(payload.chatId);
+        } else {
+          receiveMessageRef.current(payload);
+        }
       } catch (error) {
         console.error("WebSocket message parse error:", error);
       }
     };
 
-    socket.onerror = (error) => {
-      if (!opened) {
-        setWebsocketAvailable(false);
-      }
+    socket.onerror = () => {
+      if (!opened) setWebsocketAvailable(false);
     };
 
     return () => {
+      socketRef.current = null;
       socket.close();
     };
   }, [chat?.id]);

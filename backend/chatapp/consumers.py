@@ -8,6 +8,9 @@ from django.utils import timezone
 from .models import Employee, Message
 from .serializers import MessageSerializer
 
+# Track online users: employee_id -> set of channel names
+online_users = {}
+
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
@@ -18,15 +21,54 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
 
+        # Mark employee online
+        if self.employee:
+            emp_id = str(self.employee.id)
+            if emp_id not in online_users:
+                online_users[emp_id] = set()
+            online_users[emp_id].add(self.channel_name)
+            await self._set_online(True)
+            # Broadcast online status to room
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {"type": "presence_update", "employeeId": emp_id, "isOnline": True}
+            )
+
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
+        # Mark employee offline if no other connections
+        if self.employee:
+            emp_id = str(self.employee.id)
+            if emp_id in online_users:
+                online_users[emp_id].discard(self.channel_name)
+                if not online_users[emp_id]:
+                    del online_users[emp_id]
+                    await self._set_online(False)
+                    await self.channel_layer.group_send(
+                        self.room_group_name,
+                        {"type": "presence_update", "employeeId": emp_id, "isOnline": False}
+                    )
+
     async def receive_json(self, content, **kwargs):
+        msg_type = content.get("type", "message")
+
+        # Handle read receipt
+        if msg_type == "read":
+            chat_id = content.get("chatId")
+            reader_id = content.get("readerId")
+            if chat_id and reader_id:
+                await self._mark_messages_read(chat_id, reader_id)
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {"type": "read_receipt", "chatId": chat_id, "readerId": reader_id}
+                )
+            return
+
         text = (content.get("text") or "").strip()
         if not text or self.employee is None:
             return
 
-        # Enforce admins_only group restriction
         if await self._is_group_admins_only(self.chat_id):
             if self.employee.role not in {"admin", "superadmin"}:
                 await self.send_json({"error": "Only admins can send messages in this group"})
@@ -34,7 +76,6 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
         message = await self._create_message(self.employee.id, text)
         serialized = await self._serialize_message(message)
-        # Broadcast to all members in the room (including sender)
         await self.channel_layer.group_send(
             self.room_group_name,
             {"type": "chat_message", "message": serialized}
@@ -42,6 +83,30 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def chat_message(self, event):
         await self.send_json(event["message"])
+
+    async def presence_update(self, event):
+        await self.send_json({
+            "type": "presence",
+            "employeeId": event["employeeId"],
+            "isOnline": event["isOnline"],
+        })
+
+    async def read_receipt(self, event):
+        await self.send_json({
+            "type": "read",
+            "chatId": event["chatId"],
+            "readerId": event["readerId"],
+        })
+
+    @database_sync_to_async
+    def _set_online(self, status):
+        Employee.objects.filter(pk=self.employee.id).update(is_online=status)
+
+    @database_sync_to_async
+    def _mark_messages_read(self, chat_id, reader_id):
+        Message.objects.filter(chat_id=chat_id, is_read=False).exclude(
+            sender_id=reader_id
+        ).update(is_read=True)
 
     @database_sync_to_async
     def _serialize_message(self, message):
@@ -89,7 +154,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         if "_" in normalized_chat_id:
             participants = [part for part in normalized_chat_id.split("_") if part]
             if len(participants) == 2:
-                receiver_id = next((participant for participant in participants if str(participant) != str(sender_id)), None)
+                receiver_id = next((p for p in participants if str(p) != str(sender_id)), None)
                 if receiver_id is not None:
                     try:
                         receiver = Employee.objects.get(pk=receiver_id)
