@@ -133,47 +133,61 @@
   overflow: hidden;
 }
 
-/* ── Employee sidebar (dark) ─────────────────────────────────────────────── */
+/* ── Employee sidebar (light) ─────────────────────────────────────────────── */
 .hub-emp-panel {
   width: 200px;
   min-width: 160px;
-  background: #1a1d1f;
+  background: #ffffff;
+  border-right: 1px solid #e8e8e8;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
 }
 
 .hub-emp-panel .hub-conv-header {
-  background: #111314;
-  color: #ffffff;
-  border-bottom: 1px solid #2a2d2f;
+  background: #f7f8fa;
+  color: #111;
+  border-bottom: 1px solid #f0f0f0;
   padding: 14px 14px 10px;
 }
 
 .hub-emp-panel .hub-search {
-  background: #2a2d2f;
-  border-color: #3a3d3f;
-  color: #ffffff;
+  background: #f7f8fa;
+  border-color: #e8e8e8;
+  color: #111;
   margin: 8px 10px;
 }
 
-.hub-emp-panel .hub-search::placeholder { color: #666; }
-.hub-emp-panel .hub-search:focus { border-color: #ff6b35; background: #333; }
+.hub-emp-panel .hub-search::placeholder { color: #aaa; }
+.hub-emp-panel .hub-search:focus { border-color: #ff6b35; background: #fff; }
 
-.hub-emp-panel .hub-conv-scroll { background: #1a1d1f; }
+.hub-emp-panel .hub-conv-scroll { background: #ffffff; }
 
 .hub-emp-panel .hub-conv-row {
-  border-bottom: 1px solid #222527;
+  border-bottom: 1px solid #f5f5f5;
   padding: 9px 12px;
 }
 
-.hub-emp-panel .hub-conv-row:hover { background: #222527; }
-.hub-emp-panel .hub-conv-row.active { background: #2a1a10; border-left: 3px solid #ff6b35; }
+.hub-emp-panel .hub-conv-row:hover { background: #f7f8fa; }
+.hub-emp-panel .hub-conv-row.active { background: #fff5f0; border-left: 3px solid #ff6b35; }
 
-.hub-emp-panel .hub-conv-name { color: #e0e0e0; font-size: 13px; }
-.hub-emp-panel .hub-conv-preview { color: #666; }
-.hub-emp-panel .hub-conv-time { color: #555; }
-.hub-emp-panel .hub-empty-small { color: #555; }
+.hub-emp-panel .hub-conv-name { color: #111; font-size: 13px; }
+.hub-emp-panel .hub-conv-preview { color: #888; }
+.hub-emp-panel .hub-conv-time { color: #aaa; }
+.hub-emp-panel .hub-empty-small { color: #aaa; }
+
+/* Section divider inside employee panel */
+.hub-panel-section {
+  padding: 8px 12px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  background: #fafafa;
+  border-top: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f0f0f0;
+}
 
 /* ── Chat list ───────────────────────────────────────────────────────────── */
 .hub-conv-list {
