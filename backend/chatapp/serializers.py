@@ -4,15 +4,16 @@ from .models import ChatGroup, Employee, Meeting, Message
 
 
 def _avatar_url(obj, request=None):
-    """Return avatar URL — handles both Cloudinary (absolute) and local (relative) storage."""
+    """Return avatar URL — always https in production."""
     if not obj.avatar:
         return None
     try:
         url = obj.avatar.url
         if url.startswith("http"):
-            return url  # Cloudinary or any absolute URL
+            # Force https — Render proxies HTTP internally but serves HTTPS externally
+            return url.replace("http://", "https://", 1)
         if request:
-            return request.build_absolute_uri(url)
+            return request.build_absolute_uri(url).replace("http://", "https://", 1)
         return url
     except Exception:
         return None
@@ -121,9 +122,12 @@ class MessageSerializer(serializers.ModelSerializer):
     def get_attachment(self, obj):
         if not obj.attachment_type:
             return None
+        url = obj.attachment_url or ""
+        if url.startswith("http://"):
+            url = url.replace("http://", "https://", 1)
         return {
             "type": obj.attachment_type,
-            "url": obj.attachment_url,
+            "url": url,
             "fileName": obj.attachment_file_name,
             "fileSize": obj.attachment_file_size,
             "mimeType": obj.attachment_mime_type,
