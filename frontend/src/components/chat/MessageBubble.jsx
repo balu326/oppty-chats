@@ -45,7 +45,7 @@ function AttachmentView({ attachment }) {
   );
 }
 
-export default function MessageBubble({ message, onReply, onDelete, onReact, onSelect, isSelected, onDoubleClick, onBookmark }) {
+export default function MessageBubble({ message, onReply, onDelete, onReact, onSelect, isSelected, onDoubleClick, onBookmark, onPin }) {
   const mine = message.sender === "me";
   const initial = (message.senderName || "?").slice(0, 1).toUpperCase();
   const [showMenu, setShowMenu] = useState(false);
@@ -127,6 +127,7 @@ export default function MessageBubble({ message, onReply, onDelete, onReact, onS
   const handleReact = (emoji) => { onReact?.(message.id, emoji); setShowReactions(false); setShowMenu(false); };
   const handleSelect = () => { onSelect?.(String(message.id)); setShowMenu(false); };
   const handleBookmark = () => { onBookmark?.(message); setShowMenu(false); };
+  const handlePin = () => { onPin?.(message); setShowMenu(false); };
 
   const reactions = message.reactions || {};
   const reactionEntries = Object.entries(reactions).filter(([, users]) => users?.length > 0);
@@ -145,7 +146,10 @@ export default function MessageBubble({ message, onReply, onDelete, onReact, onS
             <button className="bubbleMenuItem" onClick={handleCopy}>📋 Copy</button>
           )}
           <button className="bubbleMenuItem" onClick={handleSelect}>☑ Select</button>
-          <button className="bubbleMenuItem" onClick={handleBookmark}>🔖 Bookmark</button>
+          <button className="bubbleMenuItem" onClick={handleBookmark}>💾 Save Message</button>
+          <button className="bubbleMenuItem" onClick={handlePin}>
+            {message.pinned ? "📌 Unpin" : "📌 Pin Message"}
+          </button>
           {mine && (
             <button className="bubbleMenuItem danger" onClick={handleDelete}>🗑 Delete</button>
           )}
@@ -195,8 +199,11 @@ export default function MessageBubble({ message, onReply, onDelete, onReact, onS
           </div>
         )}
 
-        <div className={`bubble ${mine ? "mine" : "theirs"}`}>
+        <div className={`bubble ${mine ? "mine" : "theirs"} ${message.pinned ? "bubble--pinned" : ""}`}>
           <AttachmentView attachment={message.attachment} />
+          {message.pinned && (
+            <div className="pinnedIndicator">📌 Pinned</div>
+          )}
           {message.text && typeof message.text === "string" && message.text.trim() && (
             <div className="bubbleText">{message.text}</div>
           )}
