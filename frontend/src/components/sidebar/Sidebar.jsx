@@ -699,20 +699,6 @@ export default function Sidebar({ isChatOpen }) {
         </div>
 
         <div className="sidebar-bottom">
-          {/* Theme toggle */}
-          <button
-            type="button"
-            className="sidebar-item sidebar-theme-btn"
-            onClick={() => setMode(isDark ? "light" : "dark")}
-            aria-label="Toggle theme"
-            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            <span className="sidebar-icon" style={{ fontSize: 20 }}>
-              {isDark ? "☀️" : "🌙"}
-            </span>
-            <span className="sidebar-item-label">{isDark ? "Light" : "Dark"}</span>
-          </button>
-
           <div className="sidebar-profile-wrapper">
             <button
               ref={profileBtnRef}
@@ -758,6 +744,14 @@ export default function Sidebar({ isChatOpen }) {
 
                       <button type="button" className="profile-menu-btn" onClick={handleStartEdit}>
                         Edit Name / Photo
+                      </button>
+
+                      <button
+                        type="button"
+                        className="profile-menu-btn"
+                        onClick={() => setMode(isDark ? "light" : "dark")}
+                      >
+                        {isDark ? "☀️ Switch to Light" : "🌙 Switch to Dark"}
                       </button>
 
                       <button
