@@ -38,6 +38,7 @@ function normalizeBackendMessage(message, currentEmployeeId) {
     senderName: message.sender?.name || "Unknown",
     senderAvatar: message.sender?.avatarUrl || null,
     attachment: message.attachment || null,
+    isRead: message.isRead || message.is_read || false,
   };
 }
 
