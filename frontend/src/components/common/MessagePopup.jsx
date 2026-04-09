@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./MessagePopup.css";
+import { registerToast } from "./toast.js";
 
 // ── Browser push notification permission ──────────────────────────────────────
 function requestNotificationPermission() {
@@ -30,14 +31,20 @@ function sendBrowserNotification({ senderName, text, senderAvatar, chatId, onCli
 
 // ── Global queue ──────────────────────────────────────────────────────────────
 let addPopupFn = null;
+let addToastFn = null;
 
 export function triggerMessagePopup(popup) {
   addPopupFn?.(popup);
 }
 
+export function triggerToast(message, type = "info") {
+  addToastFn?.(message, type);
+}
+
 // ── Container ─────────────────────────────────────────────────────────────────
 export default function MessagePopupContainer() {
   const [popups, setPopups] = useState([]);
+  const [toasts, setToasts] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -47,18 +54,22 @@ export default function MessagePopupContainer() {
   useEffect(() => {
     addPopupFn = (popup) => {
       const id = Date.now() + Math.random();
-      setPopups((prev) => [...prev.slice(-2), { ...popup, id }]); // max 3 stacked
-
-      // Also fire a browser notification when tab is hidden
+      setPopups((prev) => [...prev.slice(-2), { ...popup, id }]);
       sendBrowserNotification({
         ...popup,
         onClickCb: () => popup.chatId && navigate(`/chats/${popup.chatId}`),
       });
     };
-    return () => { addPopupFn = null; };
+    addToastFn = (message, type) => {
+      const id = Date.now() + Math.random();
+      setToasts((prev) => [...prev.slice(-3), { id, message, type }]);
+    };
+    registerToast(addToastFn);
+    return () => { addPopupFn = null; addToastFn = null; };
   }, [navigate]);
 
   const dismiss = (id) => setPopups((prev) => prev.filter((p) => p.id !== id));
+  const dismissToast = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
 
   const handleClick = (popup) => {
     dismiss(popup.id);
@@ -66,16 +77,18 @@ export default function MessagePopupContainer() {
   };
 
   return (
-    <div className="msg-popup-stack">
-      {popups.map((p) => (
-        <MessagePopup
-          key={p.id}
-          popup={p}
-          onDismiss={() => dismiss(p.id)}
-          onClick={() => handleClick(p)}
-        />
-      ))}
-    </div>
+    <>
+      <div className="msg-popup-stack">
+        {popups.map((p) => (
+          <MessagePopup key={p.id} popup={p} onDismiss={() => dismiss(p.id)} onClick={() => handleClick(p)} />
+        ))}
+      </div>
+      <div className="toast-stack">
+        {toasts.map((t) => (
+          <ToastItem key={t.id} toast={t} onDismiss={() => dismissToast(t.id)} />
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -125,6 +138,29 @@ function MessagePopup({ popup, onDismiss, onClick }) {
 
       {/* Auto-dismiss progress bar */}
       <div className="msg-popup-progress" />
+    </div>
+  );
+}
+
+// ── Toast item ────────────────────────────────────────────────────────────────
+function ToastItem({ toast, onDismiss }) {
+  const [exiting, setExiting] = useState(false);
+
+  const close = () => { setExiting(true); setTimeout(onDismiss, 280); };
+
+  useEffect(() => {
+    const t = setTimeout(close, 3500);
+    return () => clearTimeout(t);
+  }, []);
+
+  const icons = { success: "✓", error: "✕", warning: "⚠", info: "ℹ" };
+  const icon = icons[toast.type] || "ℹ";
+
+  return (
+    <div className={`toast-item toast-item--${toast.type} ${exiting ? "toast-item--exit" : ""}`}>
+      <span className="toast-item-icon">{icon}</span>
+      <span className="toast-item-msg">{toast.message}</span>
+      <button className="toast-item-close" onClick={close}>✕</button>
     </div>
   );
 }

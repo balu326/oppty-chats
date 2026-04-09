@@ -4,6 +4,7 @@ import { useChats } from "../../context/ChatContext.jsx";
 import { useMediaQuery } from "../../hooks/useMediaQuery.js";
 import { getAuthUser } from "../../utils/auth.js";
 import MessageBubble from "./MessageBubble.jsx";
+import { triggerToast } from "../common/MessagePopup.jsx";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 const QUICK_EMOJIS = ["😀", "😂", "😍", "🔥", "👍", "🎉", "🙏", "💡", "🚀", "❤️"];
@@ -538,7 +539,7 @@ export default function ChatPage() {
       .then(() => setSelectedMemberId(""))
       .catch((error) => {
         console.error("Add member error:", error);
-        alert(error.message || "Failed to add employee to group");
+        triggerToast(error.message || 'Failed to add employee to group', 'error');
       });
   };
 
@@ -546,7 +547,7 @@ export default function ChatPage() {
     if (!canManageGroup || chat.kind !== "group") return;
     removeGroupMember(chat.id, memberId).catch((error) => {
       console.error("Remove member error:", error);
-      alert(error.message || "Failed to remove employee from group");
+      triggerToast(error.message || 'Failed to remove employee from group', 'error');
     });
   };
 
@@ -590,7 +591,7 @@ export default function ChatPage() {
     // Check file size (max 10MB for now)
     const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
-      alert('File is too large. Maximum size is 10MB.');
+      triggerToast('File is too large. Maximum size is 10MB.', 'warning');
       return;
     }
 
@@ -616,11 +617,11 @@ export default function ChatPage() {
         setShowAttachMenu(false);
       } else {
         console.error('❌ Upload failed:', data.message);
-        alert('Failed to upload file: ' + data.message);
+        triggerToast('Failed to upload file: ' + data.message, 'error');
       }
     } catch (error) {
       console.error('❌ Upload error:', error);
-      alert('Error uploading file');
+      triggerToast('Error uploading file', 'error');
     } finally {
       setIsSending(false);
     }
@@ -643,7 +644,7 @@ export default function ChatPage() {
     try {
       new URL(url);
     } catch {
-      alert('Please enter a valid URL');
+      triggerToast('Please enter a valid URL', 'warning');
       return;
     }
 
@@ -669,7 +670,7 @@ export default function ChatPage() {
     })
     .catch(error => {
       console.error('Error sending link:', error);
-      alert('Failed to send link');
+      triggerToast('Failed to send link', 'error');
     });
     
     setLinkUrl('');
@@ -704,7 +705,7 @@ export default function ChatPage() {
       }, 'image/jpeg');
     } catch (error) {
       console.error('❌ Camera error:', error);
-      alert('Unable to access camera. Please check permissions.');
+      triggerToast('Unable to access camera. Please check permissions.', 'error');
     }
   };
 
@@ -720,7 +721,7 @@ export default function ChatPage() {
 
   const handleForward = () => {
     if (selectedMsgs.size === 0 || !forwardTargetId) {
-      alert('Please select a chat to forward to');
+      triggerToast('Please select a chat to forward to', 'warning');
       return;
     }
 
@@ -737,7 +738,7 @@ export default function ChatPage() {
     }).filter(Boolean);
 
     if (texts.length === 0) {
-      alert('No valid messages to forward');
+      triggerToast('No valid messages to forward', 'warning');
       return;
     }
 
@@ -1394,3 +1395,4 @@ export default function ChatPage() {
     </div>
   );
 }
+

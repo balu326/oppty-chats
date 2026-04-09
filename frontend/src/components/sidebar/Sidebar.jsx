@@ -5,6 +5,7 @@ import AppLoader from "../common/AppLoader.jsx";
 import companyLogo from "../../assets/opptylogo.png";
 import NotificationPanel from "../notifications/NotificationPanel.jsx";
 import { useNotifications } from "../../hooks/useNotifications.js";
+import { triggerToast } from "../common/MessagePopup.jsx";
 import "./Sidebar.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
@@ -369,12 +370,12 @@ export default function Sidebar({ isChatOpen }) {
     const password = newContactPassword.trim();
 
     if (!name || !email || !password) {
-      alert('Please fill in all fields: name, email, and password');
+      triggerToast("Please fill in all fields: name, email, and password", "warning");
       return;
     }
 
     if (password.length < 6) {
-      alert('Password must be at least 6 characters');
+      triggerToast("Password must be at least 6 characters", "warning");
       return;
     }
 
@@ -410,13 +411,13 @@ export default function Sidebar({ isChatOpen }) {
         setNewContactPassword("");
         handleCloseCreatePopup();
         navigate("/chats");
-        alert(`Employee "${name}" created successfully! They can now login with their email and password.`);
+        triggerToast(`Employee "${name}" created successfully!`, "success");
       } else {
-        alert(data.message || 'Failed to create employee');
+        triggerToast(data.message || "Failed to create employee", "error");
       }
     } catch (error) {
       console.error('Create employee error:', error);
-      alert('Failed to create employee. Please try again.');
+      triggerToast("Failed to create employee. Please try again.", "error");
     }
   };
 
@@ -454,7 +455,7 @@ export default function Sidebar({ isChatOpen }) {
       })
       .catch((error) => {
         console.error("Create group error:", error);
-        alert(error.message || "Failed to create group");
+        triggerToast(error.message || "Failed to create group", "error");
       });
   };
 
@@ -528,7 +529,7 @@ export default function Sidebar({ isChatOpen }) {
                 <path fill="currentColor" d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
               </svg>
             </span>
-            <span className="sidebar-item-label">Alerts</span>
+            <span className="sidebar-item-label">Notifs</span>
             {notifUnread > 0 && (
               <span className="sidebar-badge">{notifUnread > 99 ? "99+" : notifUnread}</span>
             )}
