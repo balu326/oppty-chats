@@ -68,9 +68,11 @@ function ChatMonitor({ messages, employees, groups, token }) {
 
   const resolveUrl = (u) => {
     if (!u) return "";
-    if (u.startsWith("http")) return u.replace("http://", "https://");
+    // Already absolute — just force https
+    if (u.startsWith("http")) return u.replace(/^http:\/\//i, "https://");
+    // Relative — prepend backend base
     const base = (import.meta.env.VITE_API_URL || "http://localhost:8000/api").replace(/\/api\/?$/, "");
-    return `${base}${u}`;
+    return `${base}${u.startsWith("/") ? "" : "/"}${u}`;
   };
 
   return (
@@ -157,7 +159,16 @@ function ChatMonitor({ messages, employees, groups, token }) {
                         {msg.text && <div className="hub-msg-text">{msg.text}</div>}
                         {att?.type === "photo" && (
                           <a href={resolveUrl(att.url)} target="_blank" rel="noopener noreferrer">
-                            <img src={resolveUrl(att.url)} alt="photo" className="hub-msg-img" onError={e => e.target.style.display = "none"} />
+                            <img
+                              src={resolveUrl(att.url)}
+                              alt="photo"
+                              className="hub-msg-img"
+                              onError={e => {
+                                e.target.style.display = "none";
+                                e.target.nextSibling && (e.target.nextSibling.style.display = "inline-flex");
+                              }}
+                            />
+                            <span className="hub-msg-file" style={{ display: "none" }}>📷 Photo (unavailable)</span>
                           </a>
                         )}
                         {att?.type === "video" && (
