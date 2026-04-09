@@ -1864,3 +1864,59 @@
   color: var(--text-secondary);
   font-weight: 500;
 }
+
+/* ── Message loading states ─────────────────────────────────────────────── */
+.loadingMessages {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--panel-2);
+  border-radius: 8px;
+  margin: 8px 16px;
+  font-weight: 500;
+}
+
+.loadingError {
+  color: #e53935;
+  background: #fff5f5;
+}
+
+.retryBtn {
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.retryBtn:hover { background: var(--accent-hover); }
+
+.loadingDots {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.loadingDots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  animation: dotBounce 1.2s ease-in-out infinite;
+}
+
+.loadingDots span:nth-child(2) { animation-delay: 0.2s; }
+.loadingDots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dotBounce {
+  0%, 80%, 100% { transform: scale(0.7); opacity: 0.5; }
+  40%           { transform: scale(1);   opacity: 1; }
+}

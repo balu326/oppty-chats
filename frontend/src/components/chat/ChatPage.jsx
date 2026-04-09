@@ -212,48 +212,62 @@ export default function ChatPage() {
   // Always reload messages from backend when chatId changes or component mount
   const lastLoadedChatIdRef = useRef(null);
   const lastLoadTimeRef = useRef(0);
-  
-  useEffect(() => {
-    // Clear last message sent ref when switching chats
-    if (chatId !== lastLoadedChatIdRef.current) {
-      lastMessageSentRef.current = { text: '', timestamp: 0 };
-    }
+  const [msgLoadError, setMsgLoadError] = useState(false);
 
+  const loadFromBackend = useCallback(async (force = false) => {
     if (!chatId || !chat) return;
 
-    // Prevent loading same chat twice within 10 seconds
+    // Prevent loading same chat twice within 3 seconds (reduced from 10s)
     const timeSinceLastLoad = Date.now() - lastLoadTimeRef.current;
-    if (lastLoadedChatIdRef.current === chatId && timeSinceLastLoad < 10000) return;
+    if (!force && lastLoadedChatIdRef.current === chatId && timeSinceLastLoad < 3000) return;
 
     if (chat.isLoadingMessages) return;
 
     const timeSinceLastSend = Date.now() - (window.lastMessageSentTime || 0);
     const isSameChat = window.lastMessageSentChatId === chatId;
-    if (timeSinceLastSend < 3000 && timeSinceLastSend > 0 && isSameChat) return;
+    if (!force && timeSinceLastSend < 3000 && timeSinceLastSend > 0 && isSameChat) return;
 
-    const loadFromBackend = async () => {
-      setLoadingMessages(true);
-      try {
-        const authUser = getAuthUser();
-        const myEmployeeId = authUser?.employeeId;
-        const query = chat.kind === "dm" && myEmployeeId ? `?userId=${myEmployeeId}` : "";
-        const response = await fetch(`${API_URL}/messages/${chatId}${query}`);
-        const data = await response.json();
+    setLoadingMessages(true);
+    setMsgLoadError(false);
 
-        if (data.success && Array.isArray(data.messages)) {
-          const backendMessages = data.messages.map((msg) => normalizeMessage(msg, myEmployeeId));
-          lastLoadedChatIdRef.current = chatId;
-          lastLoadTimeRef.current = Date.now();
-          loadMessages(chatId, backendMessages);
-        }
-      } catch (error) {
-        console.error('Failed to load messages:', error);
-      } finally {
-        setLoadingMessages(false);
+    const attempt = async () => {
+      const authUser = getAuthUser();
+      const myEmployeeId = authUser?.employeeId;
+      const query = chat.kind === "dm" && myEmployeeId ? `?userId=${myEmployeeId}` : "";
+      const response = await fetch(`${API_URL}/messages/${chatId}${query}`, {
+        signal: AbortSignal.timeout(20000),
+      });
+      const data = await response.json();
+      if (data.success && Array.isArray(data.messages)) {
+        const backendMessages = data.messages.map((msg) => normalizeMessage(msg, myEmployeeId));
+        lastLoadedChatIdRef.current = chatId;
+        lastLoadTimeRef.current = Date.now();
+        loadMessages(chatId, backendMessages);
+        setMsgLoadError(false);
       }
     };
 
-    const timer = setTimeout(loadFromBackend, 300);
+    try {
+      await attempt();
+    } catch (firstErr) {
+      // Retry once after 4s (handles Render cold start)
+      try {
+        await new Promise((r) => setTimeout(r, 4000));
+        await attempt();
+      } catch (err) {
+        console.error('Failed to load messages after retry:', err);
+        setMsgLoadError(true);
+      }
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, [chatId, chat?.kind]);
+
+  useEffect(() => {
+    if (chatId !== lastLoadedChatIdRef.current) {
+      lastMessageSentRef.current = { text: '', timestamp: 0 };
+    }
+    const timer = setTimeout(() => loadFromBackend(), 300);
     return () => clearTimeout(timer);
   }, [chatId, chat?.kind]);
 
@@ -1077,10 +1091,19 @@ export default function ChatPage() {
 
       <section className="messages" aria-label="Messages">
         {loadingMessages && (
-          <div className="loadingMessages">Loading messages...</div>
+          <div className="loadingMessages">
+            <div className="loadingDots"><span/><span/><span/></div>
+            Loading messages…
+          </div>
+        )}
+        {!loadingMessages && msgLoadError && (
+          <div className="loadingMessages loadingError">
+            <span>⚠ Could not load messages</span>
+            <button className="retryBtn" onClick={() => loadFromBackend(true)}>Retry</button>
+          </div>
         )}
         {!websocketAvailable && (
-          <div className="loadingMessages">Live updates unavailable. Using refresh polling.</div>
+          <div className="loadingMessages">Live updates unavailable.</div>
         )}
 
         {groups.map((g) => (
