@@ -10,13 +10,16 @@ function preview(m)        { return (m.content || m.text || "").trim() || (m.att
 
 // ── Chat Monitor ──────────────────────────────────────────────────────────────
 function ChatMonitor({ messages, employees, groups, token }) {
+  const [selectedEmp, setSelectedEmp] = useState(null); // filter by employee
   const [selectedConv, setSelectedConv] = useState(null);
   const [convMessages, setConvMessages] = useState([]);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
-  const [search, setSearch] = useState("");
+  const [empSearch, setEmpSearch] = useState("");
+  const [convSearch, setConvSearch] = useState("");
   const endRef = useRef(null);
 
-  const conversations = useMemo(() => {
+  // All conversations from messages
+  const allConversations = useMemo(() => {
     const map = new Map();
     messages.forEach((msg) => {
       const cid = msg.chatId || msg.chat_id || "";
@@ -34,20 +37,41 @@ function ChatMonitor({ messages, employees, groups, token }) {
           });
           name = empNames.join(" ↔ ");
         }
-        map.set(cid, { cid, name, isGroup, lastMsg: msg, count: 0 });
+        map.set(cid, { cid, name, isGroup, lastMsg: msg, count: 0, participants: [] });
       }
-      map.get(cid).lastMsg = msg;
-      map.get(cid).count += 1;
+      const conv = map.get(cid);
+      conv.lastMsg = msg;
+      conv.count += 1;
+      // Track participant IDs
+      if (msg.sender?._id && !conv.participants.includes(String(msg.sender._id))) {
+        conv.participants.push(String(msg.sender._id));
+      }
     });
     return Array.from(map.values()).sort(
       (a, b) => new Date(b.lastMsg?.createdAt || 0) - new Date(a.lastMsg?.createdAt || 0)
     );
   }, [messages, employees, groups]);
 
-  const filtered = useMemo(() => {
-    if (!search.trim()) return conversations;
-    return conversations.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
-  }, [conversations, search]);
+  // Filter conversations by selected employee
+  const filteredConvs = useMemo(() => {
+    let list = allConversations;
+    if (selectedEmp) {
+      list = list.filter(c =>
+        c.participants.includes(String(selectedEmp._id)) ||
+        c.cid.includes(String(selectedEmp._id))
+      );
+    }
+    if (convSearch.trim()) {
+      list = list.filter(c => c.name.toLowerCase().includes(convSearch.toLowerCase()));
+    }
+    return list;
+  }, [allConversations, selectedEmp, convSearch]);
+
+  // Filter employees
+  const filteredEmps = useMemo(() => {
+    if (!empSearch.trim()) return employees;
+    return employees.filter(e => e.name.toLowerCase().includes(empSearch.toLowerCase()));
+  }, [employees, empSearch]);
 
   const loadConvMessages = async (conv) => {
     setSelectedConv(conv);
@@ -66,31 +90,96 @@ function ChatMonitor({ messages, employees, groups, token }) {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [convMessages]);
 
+  // When employee changes, clear selected conv
+  useEffect(() => {
+    setSelectedConv(null);
+    setConvMessages([]);
+    setConvSearch("");
+  }, [selectedEmp]);
+
   const resolveUrl = (u) => {
     if (!u) return "";
-    // Already absolute — just force https
     if (u.startsWith("http")) return u.replace(/^http:\/\//i, "https://");
-    // Relative — prepend backend base
     const base = (import.meta.env.VITE_API_URL || "http://localhost:8000/api").replace(/\/api\/?$/, "");
     return `${base}${u.startsWith("/") ? "" : "/"}${u}`;
   };
 
   return (
     <div className="hub-monitor">
-      {/* Conversation list */}
-      <div className="hub-conv-list">
+
+      {/* Column 1 — Employee list */}
+      <div className="hub-emp-panel">
         <div className="hub-conv-header">
-          <span>Conversations</span>
-          <span className="hub-count-badge">{conversations.length}</span>
+          <span>Employees</span>
+          <span className="hub-count-badge">{employees.length}</span>
         </div>
         <input
           className="hub-search"
-          placeholder="Search…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search employee…"
+          value={empSearch}
+          onChange={e => setEmpSearch(e.target.value)}
         />
         <div className="hub-conv-scroll">
-          {filtered.map((conv) => (
+          {/* "All" option */}
+          <button
+            className={`hub-conv-row ${!selectedEmp ? "active" : ""}`}
+            onClick={() => setSelectedEmp(null)}
+          >
+            <div className="hub-conv-avatar" style={{ background: "#e0e0e0", color: "#555", fontSize: 18 }}>👥</div>
+            <div className="hub-conv-body">
+              <div className="hub-conv-top">
+                <span className="hub-conv-name">All Conversations</span>
+                <span className="hub-conv-time">{allConversations.length}</span>
+              </div>
+              <div className="hub-conv-preview">Show all chats</div>
+            </div>
+          </button>
+
+          {filteredEmps.map(emp => {
+            const empConvCount = allConversations.filter(c =>
+              c.participants.includes(String(emp._id)) || c.cid.includes(String(emp._id))
+            ).length;
+            return (
+              <button
+                key={emp._id}
+                className={`hub-conv-row ${selectedEmp?._id === emp._id ? "active" : ""}`}
+                onClick={() => setSelectedEmp(emp)}
+              >
+                <div className="hub-conv-avatar">
+                  {emp.avatarUrl
+                    ? <img src={emp.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} onError={e => e.target.style.display = "none"} />
+                    : emp.name?.[0]?.toUpperCase()
+                  }
+                </div>
+                <div className="hub-conv-body">
+                  <div className="hub-conv-top">
+                    <span className="hub-conv-name">{emp.name}</span>
+                    {empConvCount > 0 && <span className="hub-count-badge" style={{ fontSize: 10 }}>{empConvCount}</span>}
+                  </div>
+                  <div className="hub-conv-preview">
+                    <span className={`hub-role hub-role--${emp.role}`} style={{ fontSize: 11, padding: "1px 6px" }}>{emp.role}</span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Column 2 — Conversation list */}
+      <div className="hub-conv-list">
+        <div className="hub-conv-header">
+          <span>{selectedEmp ? `${selectedEmp.name}'s Chats` : "All Chats"}</span>
+          <span className="hub-count-badge">{filteredConvs.length}</span>
+        </div>
+        <input
+          className="hub-search"
+          placeholder="Search chats…"
+          value={convSearch}
+          onChange={e => setConvSearch(e.target.value)}
+        />
+        <div className="hub-conv-scroll">
+          {filteredConvs.map((conv) => (
             <button
               key={conv.cid}
               className={`hub-conv-row ${selectedConv?.cid === conv.cid ? "active" : ""}`}
@@ -111,16 +200,22 @@ function ChatMonitor({ messages, employees, groups, token }) {
               </div>
             </button>
           ))}
-          {filtered.length === 0 && <div className="hub-empty-small">No conversations</div>}
+          {filteredConvs.length === 0 && (
+            <div className="hub-empty-small">
+              {selectedEmp ? `No chats for ${selectedEmp.name}` : "No conversations"}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Message view */}
+      {/* Column 3 — Message view */}
       <div className="hub-msg-view">
         {!selectedConv ? (
           <div className="hub-msg-empty">
-            <div style={{ fontSize: 40, marginBottom: 12 }}>👁</div>
-            <div style={{ fontWeight: 600, color: "#333" }}>Select a conversation</div>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>💬</div>
+            <div style={{ fontWeight: 600, color: "#333" }}>
+              {selectedEmp ? `Select a chat from ${selectedEmp.name}` : "Select a conversation"}
+            </div>
             <div style={{ fontSize: 13, color: "#888", marginTop: 4 }}>View-only mode</div>
           </div>
         ) : (

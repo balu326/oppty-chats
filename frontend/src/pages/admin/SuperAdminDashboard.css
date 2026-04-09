@@ -132,9 +132,20 @@
   min-height: 500px;
 }
 
+/* Employee panel — leftmost column */
+.hub-emp-panel {
+  width: 220px;
+  min-width: 180px;
+  border-right: 1px solid #e8e8e8;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  background: #fafafa;
+}
+
 .hub-conv-list {
-  width: 300px;
-  min-width: 260px;
+  width: 260px;
+  min-width: 220px;
   border-right: 1px solid #e8e8e8;
   display: flex;
   flex-direction: column;
@@ -656,7 +667,8 @@
 @media (max-width: 768px) {
   .hub-page { padding: 16px 14px calc(80px + env(safe-area-inset-bottom, 0px)); }
   .hub-monitor { flex-direction: column; height: auto; }
-  .hub-conv-list { width: 100%; border-right: none; border-bottom: 1px solid #e8e8e8; max-height: 280px; }
+  .hub-emp-panel { width: 100%; border-right: none; border-bottom: 1px solid #e8e8e8; max-height: 200px; }
+  .hub-conv-list { width: 100%; border-right: none; border-bottom: 1px solid #e8e8e8; max-height: 240px; }
   .hub-msg-view { min-height: 400px; }
   .hub-tabs { width: 100%; }
   .hub-tab { flex: 1; text-align: center; }
