@@ -73,7 +73,7 @@ export default function UpdatesPage() {
   };
 
   const upcoming = meetings.filter(m => !isPast(m.scheduledAt)).slice(0, 5);
-  const todayNotifs = notifications.slice(0, 10);
+  const todayNotifs = notifications.slice(0, 2);
 
   return (
     <div className="updates-page">
