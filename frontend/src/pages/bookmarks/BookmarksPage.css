@@ -1,7 +1,7 @@
 .bookmarks-page {
   max-width: 680px;
   margin: 0 auto;
-  padding: 32px 24px 80px;
+  padding: 32px 24px calc(80px + env(safe-area-inset-bottom, 0px));
   min-height: 100vh;
 }
 
@@ -134,5 +134,5 @@
 .bookmark-delete-btn:hover { background: var(--panel-2); }
 
 @media (max-width: 480px) {
-  .bookmarks-page { padding: 20px 16px 80px; }
+  .bookmarks-page { padding: 20px 16px calc(80px + env(safe-area-inset-bottom, 0px)); }
 }
