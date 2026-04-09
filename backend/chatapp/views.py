@@ -96,6 +96,10 @@ class ProfileView(APIView):
         if avatar:
             if employee.avatar:
                 employee.avatar.delete(save=False)
+            # Use unique filename to avoid collisions
+            import uuid, os
+            ext = os.path.splitext(avatar.name)[1]
+            avatar.name = f"{uuid.uuid4().hex}{ext}"
             employee.avatar = avatar
             update_fields.append("avatar")
 
@@ -589,15 +593,17 @@ class MessageUploadView(APIView):
         elif upload.content_type.startswith("video/"):
             attachment_type = Message.ATTACHMENT_VIDEO
 
-        # Use Django default storage — local in dev, Cloudinary in production
         from django.core.files.storage import default_storage
         from django.core.files.base import ContentFile
+        import uuid, os
 
-        file_path = f"uploads/{upload.name}"
+        ext = os.path.splitext(upload.name)[1]
+        unique_name = f"{uuid.uuid4().hex}{ext}"
+        file_path = f"uploads/{unique_name}"
         saved_path = default_storage.save(file_path, ContentFile(upload.read()))
         file_url = default_storage.url(saved_path)
 
-        # Make absolute if relative
+        # Make absolute if relative (local dev)
         if not file_url.startswith("http"):
             file_url = request.build_absolute_uri(file_url)
 
