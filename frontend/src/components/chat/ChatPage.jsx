@@ -1102,7 +1102,30 @@ export default function ChatPage() {
                         <div className="chatInfoMemberRole">{member.role || "employee"}</div>
                       </div>
                       {canManageGroup && (
-                        <button type="button" className="chatInfoMemberRemove" onClick={() => handleRemoveMember(member.id)}>✕</button>
+                        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                          {member.role !== "superadmin" && (
+                            <button
+                              type="button"
+                              className="chatInfoMemberAdminBtn"
+                              title={member.role === "admin" ? "Demote to employee" : "Make admin"}
+                              onClick={async () => {
+                                const auth = getAuthUser();
+                                const newRole = member.role === "admin" ? "employee" : "admin";
+                                try {
+                                  await fetch(`${API_URL}/auth/employees/${member.id}/permissions`, {
+                                    method: "PATCH",
+                                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${auth?.token}` },
+                                    body: JSON.stringify({ role: newRole }),
+                                  });
+                                  triggerToast(`${member.name} is now ${newRole}`, "success");
+                                } catch { triggerToast("Failed to update role", "error"); }
+                              }}
+                            >
+                              {member.role === "admin" ? "👤" : "⭐"}
+                            </button>
+                          )}
+                          <button type="button" className="chatInfoMemberRemove" onClick={() => handleRemoveMember(member.id)}>✕</button>
+                        </div>
                       )}
                     </div>
                   ))}

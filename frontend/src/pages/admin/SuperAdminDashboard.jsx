@@ -10,7 +10,8 @@ function preview(m)        { return (m.content || m.text || "").trim() || (m.att
 
 // ── Chat Monitor ──────────────────────────────────────────────────────────────
 function ChatMonitor({ messages, employees, groups, token }) {
-  const [selectedEmp, setSelectedEmp] = useState(null); // filter by employee
+  const [selectedEmp, setSelectedEmp] = useState(null); // filter by employee or group
+  const [filterType, setFilterType] = useState("all"); // "all" | "emp" | "group"
   const [selectedConv, setSelectedConv] = useState(null);
   const [convMessages, setConvMessages] = useState([]);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
@@ -52,20 +53,23 @@ function ChatMonitor({ messages, employees, groups, token }) {
     );
   }, [messages, employees, groups]);
 
-  // Filter conversations by selected employee
+  // Filter conversations by selected employee or group
   const filteredConvs = useMemo(() => {
     let list = allConversations;
-    if (selectedEmp) {
+    if (filterType === "emp" && selectedEmp) {
       list = list.filter(c =>
         c.participants.includes(String(selectedEmp._id)) ||
         c.cid.includes(String(selectedEmp._id))
       );
+    } else if (filterType === "group" && selectedEmp) {
+      // selectedEmp holds the group object in this case
+      list = list.filter(c => String(c.cid) === String(selectedEmp._id));
     }
     if (convSearch.trim()) {
       list = list.filter(c => c.name.toLowerCase().includes(convSearch.toLowerCase()));
     }
     return list;
-  }, [allConversations, selectedEmp, convSearch]);
+  }, [allConversations, selectedEmp, filterType, convSearch]);
 
   // Filter employees
   const filteredEmps = useMemo(() => {
@@ -90,12 +94,12 @@ function ChatMonitor({ messages, employees, groups, token }) {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [convMessages]);
 
-  // When employee changes, clear selected conv
+  // When filter changes, clear selected conv
   useEffect(() => {
     setSelectedConv(null);
     setConvMessages([]);
     setConvSearch("");
-  }, [selectedEmp]);
+  }, [selectedEmp, filterType]);
 
   const resolveUrl = (u) => {
     if (!u) return "";
@@ -107,43 +111,43 @@ function ChatMonitor({ messages, employees, groups, token }) {
   return (
     <div className="hub-monitor">
 
-      {/* Column 1 — Employee list */}
+      {/* Column 1 — Employee + Group filter panel */}
       <div className="hub-emp-panel">
         <div className="hub-conv-header">
-          <span>Employees</span>
-          <span className="hub-count-badge">{employees.length}</span>
+          <span>Filter</span>
         </div>
         <input
           className="hub-search"
-          placeholder="Search employee…"
+          placeholder="Search…"
           value={empSearch}
           onChange={e => setEmpSearch(e.target.value)}
         />
         <div className="hub-conv-scroll">
-          {/* "All" option */}
+          {/* All */}
           <button
             className={`hub-conv-row ${!selectedEmp ? "active" : ""}`}
-            onClick={() => setSelectedEmp(null)}
+            onClick={() => { setSelectedEmp(null); setFilterType("all"); }}
           >
-            <div className="hub-conv-avatar" style={{ background: "#e0e0e0", color: "#555", fontSize: 18 }}>👥</div>
+            <div className="hub-conv-avatar" style={{ background: "#e8f0fe", color: "#1a73e8", fontSize: 18 }}>💬</div>
             <div className="hub-conv-body">
               <div className="hub-conv-top">
-                <span className="hub-conv-name">All Conversations</span>
+                <span className="hub-conv-name">All Chats</span>
                 <span className="hub-conv-time">{allConversations.length}</span>
               </div>
-              <div className="hub-conv-preview">Show all chats</div>
             </div>
           </button>
 
+          {/* Employees section */}
+          <div className="hub-panel-section">Employees</div>
           {filteredEmps.map(emp => {
-            const empConvCount = allConversations.filter(c =>
+            const cnt = allConversations.filter(c =>
               c.participants.includes(String(emp._id)) || c.cid.includes(String(emp._id))
             ).length;
             return (
               <button
                 key={emp._id}
-                className={`hub-conv-row ${selectedEmp?._id === emp._id ? "active" : ""}`}
-                onClick={() => setSelectedEmp(emp)}
+                className={`hub-conv-row ${filterType === "emp" && selectedEmp?._id === emp._id ? "active" : ""}`}
+                onClick={() => { setSelectedEmp(emp); setFilterType("emp"); }}
               >
                 <div className="hub-conv-avatar">
                   {emp.avatarUrl
@@ -154,22 +158,46 @@ function ChatMonitor({ messages, employees, groups, token }) {
                 <div className="hub-conv-body">
                   <div className="hub-conv-top">
                     <span className="hub-conv-name">{emp.name}</span>
-                    {empConvCount > 0 && <span className="hub-count-badge" style={{ fontSize: 10 }}>{empConvCount}</span>}
+                    {cnt > 0 && <span style={{ fontSize: 10, color: "#aaa" }}>{cnt}</span>}
                   </div>
                   <div className="hub-conv-preview">
-                    <span className={`hub-role hub-role--${emp.role}`} style={{ fontSize: 11, padding: "1px 6px" }}>{emp.role}</span>
+                    <span className={`hub-role hub-role--${emp.role}`} style={{ fontSize: 10, padding: "1px 5px" }}>{emp.role}</span>
                   </div>
                 </div>
               </button>
             );
           })}
+
+          {/* Groups section */}
+          <div className="hub-panel-section">Groups</div>
+          {groups.map(grp => (
+            <button
+              key={grp._id}
+              className={`hub-conv-row ${filterType === "group" && selectedEmp?._id === grp._id ? "active" : ""}`}
+              onClick={() => { setSelectedEmp(grp); setFilterType("group"); }}
+            >
+              <div className="hub-conv-avatar" style={{ background: "#e8f5e9", color: "#2e7d32", fontSize: 16 }}>👥</div>
+              <div className="hub-conv-body">
+                <div className="hub-conv-top">
+                  <span className="hub-conv-name">{grp.name}</span>
+                </div>
+                <div className="hub-conv-preview">{grp.members?.length || 0} members</div>
+              </div>
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Column 2 — Conversation list */}
       <div className="hub-conv-list">
         <div className="hub-conv-header">
-          <span>{selectedEmp ? `${selectedEmp.name}'s Chats` : "All Chats"}</span>
+          <span>
+            {filterType === "group" && selectedEmp
+              ? `${selectedEmp.name}`
+              : filterType === "emp" && selectedEmp
+              ? `${selectedEmp.name}'s Chats`
+              : "All Chats"}
+          </span>
           <span className="hub-count-badge">{filteredConvs.length}</span>
         </div>
         <input
@@ -417,6 +445,36 @@ export default function SuperAdminDashboard() {
     if (d.success) { showToast("Removed"); fetch(`${API_URL}/groups`, { headers: { Authorization: `Bearer ${auth.token}` } }).then(r => r.json()).then(d => d.success && setGroups(d.groups)); }
   };
 
+  const handleDeleteEmployee = async (empId, empName) => {
+    if (!window.confirm(`Delete employee "${empName}"? This cannot be undone.`)) return;
+    const r = await fetch(`${API_URL}/auth/employees/${empId}`, { method: "DELETE", headers: { Authorization: `Bearer ${auth.token}` } });
+    const d = await r.json();
+    if (d.success) { showToast("Employee deleted"); setEmployees(prev => prev.filter(e => e._id !== empId)); }
+    else showToast(d.message || "Failed", "error");
+  };
+
+  const handleDeleteGroup = async (groupId, groupName) => {
+    if (!window.confirm(`Delete group "${groupName}"? This cannot be undone.`)) return;
+    const r = await fetch(`${API_URL}/groups/${groupId}`, { method: "DELETE", headers: { Authorization: `Bearer ${auth.token}` } });
+    const d = await r.json();
+    if (d.success) { showToast("Group deleted"); setGroups(prev => prev.filter(g => g._id !== groupId)); }
+    else showToast(d.message || "Failed", "error");
+  };
+
+  const handleMakeAdmin = async (empId, currentRole) => {
+    const newRole = currentRole === "admin" ? "employee" : "admin";
+    const r = await fetch(`${API_URL}/auth/employees/${empId}/permissions`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${auth.token}` },
+      body: JSON.stringify({ role: newRole }),
+    });
+    const d = await r.json();
+    if (d.success) {
+      showToast(`Role changed to ${newRole}`);
+      fetch(`${API_URL}/auth/employees`, { headers: { Authorization: `Bearer ${auth.token}` } }).then(r => r.json()).then(d => d.success && setEmployees(d.employees));
+    } else showToast(d.message || "Failed", "error");
+  };
+
   if (auth?.role !== "superadmin") return <div className="hub-page"><div className="hub-empty">Access denied.</div></div>;
   if (loading) return <div className="hub-page"><div className="hub-empty">Loading…</div></div>;
 
@@ -469,6 +527,7 @@ export default function SuperAdminDashboard() {
                   <th>Role</th>
                   <th>Group</th>
                   <th>Joined</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -489,6 +548,28 @@ export default function SuperAdminDashboard() {
                     <td><span className={`hub-role hub-role--${emp.role}`}>{emp.role}</span></td>
                     <td>{emp.group?.name || <span style={{ color: "#bbb" }}>—</span>}</td>
                     <td>{formatDate(emp.createdAt)}</td>
+                    <td>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        {emp.role !== "superadmin" && (
+                          <button
+                            className="hub-btn hub-btn--ghost"
+                            style={{ padding: "4px 10px", fontSize: 12 }}
+                            onClick={() => handleMakeAdmin(emp._id, emp.role)}
+                          >
+                            {emp.role === "admin" ? "Demote" : "Make Admin"}
+                          </button>
+                        )}
+                        {emp.role !== "superadmin" && (
+                          <button
+                            className="hub-btn"
+                            style={{ padding: "4px 10px", fontSize: 12, background: "#fce4ec", color: "#c62828", border: "none" }}
+                            onClick={() => handleDeleteEmployee(emp._id, emp.name)}
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -507,12 +588,21 @@ export default function SuperAdminDashboard() {
                     <div className="hub-group-meta">{group.members?.length || 0} members · Created by {group.createdBy?.name || "Admin"} · {formatDate(group.createdAt)}</div>
                     {group.description && <div className="hub-group-desc">{group.description}</div>}
                   </div>
-                  <button
-                    className={`hub-btn ${group.adminsOnly ? "hub-btn--secondary" : "hub-btn--ghost"}`}
-                    onClick={() => handleToggleAdminsOnly(group)}
-                  >
-                    {group.adminsOnly ? "🔒 Admins only" : "💬 All members"}
-                  </button>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button
+                      className={`hub-btn ${group.adminsOnly ? "hub-btn--secondary" : "hub-btn--ghost"}`}
+                      onClick={() => handleToggleAdminsOnly(group)}
+                    >
+                      {group.adminsOnly ? "🔒 Admins only" : "💬 All members"}
+                    </button>
+                    <button
+                      className="hub-btn"
+                      style={{ background: "#fce4ec", color: "#c62828", border: "none" }}
+                      onClick={() => handleDeleteGroup(group._id, group.name)}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
 
                 {/* Members */}

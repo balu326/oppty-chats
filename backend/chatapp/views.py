@@ -310,6 +310,22 @@ class EmployeesView(APIView):
         )
 
 
+class EmployeeDetailView(APIView):
+    """DELETE an employee — superadmin only."""
+    authentication_classes = [SessionTokenAuthentication]
+    permission_classes = [IsSuperAdmin]
+
+    def delete(self, request, employee_id):
+        try:
+            employee = Employee.objects.get(pk=employee_id)
+        except Employee.DoesNotExist:
+            return Response({"message": "Employee not found"}, status=status.HTTP_404_NOT_FOUND)
+        if employee.role == Employee.ROLE_SUPERADMIN:
+            return Response({"message": "Cannot delete a super admin"}, status=status.HTTP_403_FORBIDDEN)
+        employee.delete()
+        return Response({"success": True, "message": "Employee deleted"})
+
+
 class EmployeePermissionView(APIView):
     authentication_classes = [SessionTokenAuthentication]
     permission_classes = [IsSuperAdmin]
@@ -323,19 +339,22 @@ class EmployeePermissionView(APIView):
         if employee.role == Employee.ROLE_SUPERADMIN and request.user.role != Employee.ROLE_SUPERADMIN:
             return Response({"message": "Only super admins can update another super admin"}, status=status.HTTP_403_FORBIDDEN)
 
+        # Handle role change (make admin / demote)
+        new_role = request.data.get("role")
+        if new_role:
+            if new_role not in {Employee.ROLE_EMPLOYEE, Employee.ROLE_ADMIN, Employee.ROLE_SUPERADMIN}:
+                return Response({"message": "Invalid role"}, status=status.HTTP_400_BAD_REQUEST)
+            employee.role = new_role
+            employee.save(update_fields=["role"])
+            return Response({"success": True, "message": f"Role updated to {new_role}", "employee": EmployeeSerializer(employee).data})
+
         can_create_groups = request.data.get("canCreateGroups")
         if can_create_groups is None:
             return Response({"message": "No permission changes provided"}, status=status.HTTP_400_BAD_REQUEST)
 
         employee.can_create_groups = _as_bool(can_create_groups)
         employee.save(update_fields=["can_create_groups"])
-        return Response(
-            {
-                "success": True,
-                "message": "Employee permissions updated successfully",
-                "employee": EmployeeSerializer(employee).data,
-            }
-        )
+        return Response({"success": True, "message": "Employee permissions updated successfully", "employee": EmployeeSerializer(employee).data})
 
 
 class AllMessagesView(APIView):
