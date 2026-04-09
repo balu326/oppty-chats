@@ -147,10 +147,20 @@ export default function EmployeeLogin() {
         <div className="login-left">
           <div className="login-brand">
             <img src={companyLogo} alt="Oppty" className="login-brand-logo" />
-            <h2>Oppty Connect</h2>
-            <p>Your team's communication hub — fast, simple, and always in sync.</p>
-            <div className="login-brand-dots">
-              <span /><span /><span />
+            <p>Your team's communication hub —<br />fast, simple, and always in sync.</p>
+            <div className="login-brand-features">
+              <div className="login-feature-item">
+                <span className="login-feature-icon">💬</span>
+                <span>Real-time messaging</span>
+              </div>
+              <div className="login-feature-item">
+                <span className="login-feature-icon">👥</span>
+                <span>Team groups & channels</span>
+              </div>
+              <div className="login-feature-item">
+                <span className="login-feature-icon">📎</span>
+                <span>File & media sharing</span>
+              </div>
             </div>
           </div>
         </div>
