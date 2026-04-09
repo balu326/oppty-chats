@@ -9,6 +9,7 @@ import SuperAdminDashboard from "./pages/admin/SuperAdminDashboard.jsx";
 import MeetPage from "./pages/meet/MeetPage.jsx";
 import UpdatesPage from "./pages/updates/UpdatesPage.jsx";
 import MessagePopupContainer from "./components/common/MessagePopup.jsx";
+import { ThemeProvider } from "./context/ThemeContext.jsx";
 import "./App.css";
 
 function isAuthenticated() {
@@ -60,9 +61,11 @@ function ProtectedApp() {
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<EmployeeLogin />} />
-      <Route path="/*" element={<ProtectedApp />} />
-    </Routes>
+    <ThemeProvider>
+      <Routes>
+        <Route path="/login" element={<EmployeeLogin />} />
+        <Route path="/*" element={<ProtectedApp />} />
+      </Routes>
+    </ThemeProvider>
   );
 }

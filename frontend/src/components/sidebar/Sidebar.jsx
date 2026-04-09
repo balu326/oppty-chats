@@ -6,6 +6,7 @@ import companyLogo from "../../assets/opptylogo.png";
 import NotificationPanel from "../notifications/NotificationPanel.jsx";
 import { useNotifications } from "../../hooks/useNotifications.js";
 import { triggerToast } from "../common/MessagePopup.jsx";
+import { useTheme } from "../../context/ThemeContext.jsx";
 import "./Sidebar.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
@@ -120,6 +121,8 @@ export default function Sidebar({ isChatOpen }) {
   const { addContact, addGroup, chats, getUnreadCount } = useChats();
   const { notifications, unreadCount: notifUnread, markAllRead, markOneRead, deleteNotif } = useNotifications();
   const [showNotifPanel, setShowNotifPanel] = useState(false);
+  const { prefs, setMode } = useTheme();
+  const isDark = prefs.mode === "dark";
 
   const totalDmUnread = chats
     .filter((c) => c.kind === "dm")
@@ -696,6 +699,20 @@ export default function Sidebar({ isChatOpen }) {
         </div>
 
         <div className="sidebar-bottom">
+          {/* Theme toggle */}
+          <button
+            type="button"
+            className="sidebar-item sidebar-theme-btn"
+            onClick={() => setMode(isDark ? "light" : "dark")}
+            aria-label="Toggle theme"
+            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            <span className="sidebar-icon" style={{ fontSize: 20 }}>
+              {isDark ? "☀️" : "🌙"}
+            </span>
+            <span className="sidebar-item-label">{isDark ? "Light" : "Dark"}</span>
+          </button>
+
           <div className="sidebar-profile-wrapper">
             <button
               ref={profileBtnRef}
