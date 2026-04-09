@@ -71,18 +71,65 @@ class ChatGroupAdmin(admin.ModelAdmin):
 # ── Message ───────────────────────────────────────────────────────────────────
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
-    list_display = ("id", "chat_id", "sender", "receiver", "short_text", "attachment_type", "is_read", "created_at")
-    list_display_links = ("short_text",)
+    list_display = ("id", "chat_id", "sender", "receiver", "message_preview", "attachment_type", "is_read", "created_at")
+    list_display_links = ("message_preview",)
     search_fields = ("chat_id", "sender__name", "receiver__name", "text")
     list_filter = ("attachment_type", "is_read", "created_at")
-    readonly_fields = ("created_at",)
+    readonly_fields = ("created_at", "attachment_preview")
     ordering = ("-created_at",)
+    fieldsets = (
+        ("Message", {"fields": ("chat_id", "sender", "receiver", "text", "is_read")}),
+        ("Attachment", {"fields": ("attachment_type", "attachment_url", "attachment_file_name", "attachment_file_size", "attachment_mime_type", "attachment_preview")}),
+        ("Timestamps", {"fields": ("created_at",)}),
+    )
 
     @admin.display(description="Message")
-    def short_text(self, obj):
+    def message_preview(self, obj):
+        if obj.attachment_type == "photo" and obj.attachment_url:
+            url = obj.attachment_url
+            if url.startswith("http://"):
+                url = url.replace("http://", "https://", 1)
+            return format_html(
+                '<div style="display:flex;align-items:center;gap:8px;">'
+                '<img src="{}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;border:1px solid #eee;" />'
+                '<span style="color:#888;font-size:12px;">📷 Photo</span>'
+                '</div>',
+                url
+            )
+        if obj.attachment_type == "video":
+            return format_html('<span>🎥 Video</span>')
+        if obj.attachment_type == "link":
+            return format_html('<span>🔗 <a href="{}" target="_blank">{}</a></span>', obj.attachment_url, obj.attachment_url[:40])
+        if obj.attachment_type == "document":
+            return format_html('<span>📄 {}</span>', obj.attachment_file_name or "File")
         if obj.text:
-            return obj.text[:60] + ("…" if len(obj.text) > 60 else "")
-        return f"[{obj.attachment_type or 'attachment'}]"
+            return obj.text[:80] + ("…" if len(obj.text) > 80 else "")
+        return "-"
+
+    @admin.display(description="Attachment Preview")
+    def attachment_preview(self, obj):
+        if obj.attachment_type == "photo" and obj.attachment_url:
+            url = obj.attachment_url
+            if url.startswith("http://"):
+                url = url.replace("http://", "https://", 1)
+            return format_html(
+                '<a href="{}" target="_blank">'
+                '<img src="{}" style="max-width:300px;max-height:300px;object-fit:contain;border-radius:10px;border:1px solid #eee;" />'
+                '</a>',
+                url, url
+            )
+        if obj.attachment_type == "video" and obj.attachment_url:
+            url = obj.attachment_url
+            if url.startswith("http://"):
+                url = url.replace("http://", "https://", 1)
+            return format_html(
+                '<video controls style="max-width:300px;border-radius:10px;">'
+                '<source src="{}" /></video>',
+                url
+            )
+        if obj.attachment_url:
+            return format_html('<a href="{}" target="_blank">📎 Open file</a>', obj.attachment_url)
+        return "-"
 
 
 # ── Meeting ───────────────────────────────────────────────────────────────────

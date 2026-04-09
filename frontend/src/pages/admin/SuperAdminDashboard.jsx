@@ -158,11 +158,19 @@ function ChatMonitor({ messages, employees, groups, token }) {
               ) : (
                 convMessages.map((msg) => {
                   const assetBase = (import.meta.env.VITE_API_URL || "http://localhost:8000/api").replace(/\/api\/?$/, "");
-                  const resolveUrl = (u) => u?.startsWith("http") ? u : `${assetBase}${u}`;
+                  const resolveUrl = (u) => {
+                    if (!u) return "";
+                    if (u.startsWith("http")) return u.replace("http://", "https://");
+                    return `${assetBase}${u}`;
+                  };
+                  const att = msg.attachment;
                   return (
                     <div key={msg._id || msg.id} className="monitorMsgRow">
                       <div className="monitorMsgAvatar">
-                        {(msg.sender?.name || "?").slice(0, 1).toUpperCase()}
+                        {msg.sender?.avatarUrl
+                          ? <img src={msg.sender.avatarUrl} alt={msg.sender.name} style={{width:"100%",height:"100%",objectFit:"cover",borderRadius:"50%"}} onError={e=>e.target.style.display="none"} />
+                          : (msg.sender?.name || "?").slice(0, 1).toUpperCase()
+                        }
                       </div>
                       <div className="monitorMsgBody">
                         <div className="monitorMsgMeta">
@@ -170,17 +178,29 @@ function ChatMonitor({ messages, employees, groups, token }) {
                           <span className="monitorMsgTime">{formatDateTime(msg.createdAt)}</span>
                         </div>
                         {msg.text && <div className="monitorMsgText">{msg.text}</div>}
-                        {msg.attachment?.type === "photo" && (
-                          <img src={resolveUrl(msg.attachment.url)} alt="photo" className="monitorMsgImg" />
-                        )}
-                        {msg.attachment?.type === "document" && (
-                          <a href={resolveUrl(msg.attachment.url)} target="_blank" rel="noopener noreferrer" className="monitorMsgFile">
-                            📄 {msg.attachment.fileName}
+                        {att?.type === "photo" && (
+                          <a href={resolveUrl(att.url)} target="_blank" rel="noopener noreferrer">
+                            <img
+                              src={resolveUrl(att.url)}
+                              alt="photo"
+                              className="monitorMsgImg"
+                              onError={e => { e.target.style.display="none"; }}
+                            />
                           </a>
                         )}
-                        {msg.attachment?.type === "link" && (
-                          <a href={msg.attachment.url} target="_blank" rel="noopener noreferrer" className="monitorMsgLink">
-                            🔗 {msg.attachment.url}
+                        {att?.type === "video" && (
+                          <video controls className="monitorMsgVideo">
+                            <source src={resolveUrl(att.url)} />
+                          </video>
+                        )}
+                        {att?.type === "document" && (
+                          <a href={resolveUrl(att.url)} target="_blank" rel="noopener noreferrer" className="monitorMsgFile">
+                            📄 {att.fileName || "File"}
+                          </a>
+                        )}
+                        {att?.type === "link" && (
+                          <a href={att.url} target="_blank" rel="noopener noreferrer" className="monitorMsgLink">
+                            🔗 {att.url}
                           </a>
                         )}
                       </div>
