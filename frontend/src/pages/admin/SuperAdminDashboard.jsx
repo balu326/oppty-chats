@@ -212,74 +212,116 @@ function ChatMonitor({ messages, employees, groups, token }) {
       <div className="hub-msg-view">
         {!selectedConv ? (
           <div className="hub-msg-empty">
-            <div style={{ fontSize: 40, marginBottom: 12 }}>💬</div>
-            <div style={{ fontWeight: 600, color: "#333" }}>
+            <div style={{ fontSize: 48, marginBottom: 12, opacity: 0.4 }}>💬</div>
+            <div style={{ fontWeight: 600, color: "#555", fontSize: 15 }}>
               {selectedEmp ? `Select a chat from ${selectedEmp.name}` : "Select a conversation"}
             </div>
-            <div style={{ fontSize: 13, color: "#888", marginTop: 4 }}>View-only mode</div>
+            <div style={{ fontSize: 13, color: "#999", marginTop: 6 }}>Read-only monitor view</div>
           </div>
         ) : (
           <>
+            {/* Chat header */}
             <div className="hub-msg-header">
-              <div className="hub-conv-avatar">{selectedConv.isGroup ? "👥" : selectedConv.name.slice(0, 1).toUpperCase()}</div>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 15 }}>{selectedConv.name}</div>
+              <div className="hub-conv-avatar" style={{ width: 42, height: 42, fontSize: 16 }}>
+                {selectedConv.isGroup ? "👥" : selectedConv.name.slice(0, 1).toUpperCase()}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: "#111" }}>{selectedConv.name}</div>
                 <div style={{ fontSize: 12, color: "#888" }}>
-                  {selectedConv.isGroup ? "Group" : "DM"} · {convMessages.length} messages · read-only
+                  {selectedConv.isGroup ? "Group chat" : "Direct message"} · {convMessages.length} messages
                 </div>
               </div>
-              <span className="hub-readonly-badge">👁 Monitor</span>
+              <span className="hub-readonly-badge">👁 Read-only</span>
             </div>
+
+            {/* Messages */}
             <div className="hub-messages">
               {loadingMsgs ? (
-                <div className="hub-loading">Loading…</div>
+                <div className="hub-loading">
+                  <div className="loadingDots"><span/><span/><span/></div>
+                  Loading messages…
+                </div>
               ) : convMessages.length === 0 ? (
                 <div className="hub-loading">No messages yet</div>
-              ) : (
-                convMessages.map((msg) => {
+              ) : (() => {
+                // Group by day for day separators
+                let lastDay = null;
+                return convMessages.map((msg) => {
                   const att = msg.attachment;
+                  const isMine = selectedEmp
+                    ? String(msg.sender?._id || msg.sender?.id) === String(selectedEmp._id)
+                    : false;
+                  const msgDay = msg.createdAt
+                    ? new Date(msg.createdAt).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })
+                    : null;
+                  const showDay = msgDay && msgDay !== lastDay;
+                  if (showDay) lastDay = msgDay;
+
                   return (
-                    <div key={msg._id || msg.id} className="hub-msg-row">
-                      <div className="hub-msg-avatar">
-                        {msg.sender?.avatarUrl
-                          ? <img src={msg.sender.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} onError={e => e.target.style.display = "none"} />
-                          : (msg.sender?.name || "?")[0].toUpperCase()
-                        }
-                      </div>
-                      <div className="hub-msg-body">
-                        <div className="hub-msg-meta">
-                          <span className="hub-msg-sender">{msg.sender?.name || "Unknown"}</span>
-                          <span className="hub-msg-time">{formatDateTime(msg.createdAt)}</span>
+                    <React.Fragment key={msg._id || msg.id}>
+                      {showDay && (
+                        <div className="hub-day-chip">
+                          <span>{msgDay}</span>
                         </div>
-                        {msg.text && <div className="hub-msg-text">{msg.text}</div>}
-                        {att?.type === "photo" && (
-                          <a href={resolveUrl(att.url)} target="_blank" rel="noopener noreferrer">
-                            <img
-                              src={resolveUrl(att.url)}
-                              alt="photo"
-                              className="hub-msg-img"
-                              onError={e => {
-                                e.target.style.display = "none";
-                                e.target.nextSibling && (e.target.nextSibling.style.display = "inline-flex");
-                              }}
-                            />
-                            <span className="hub-msg-file" style={{ display: "none" }}>📷 Photo (unavailable)</span>
-                          </a>
+                      )}
+                      <div className={`hub-msg-row ${isMine ? "hub-msg-mine" : ""}`}>
+                        {!isMine && (
+                          <div className="hub-msg-avatar">
+                            {msg.sender?.avatarUrl
+                              ? <img src={msg.sender.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} onError={e => e.target.style.display = "none"} />
+                              : (msg.sender?.name || "?")[0].toUpperCase()
+                            }
+                          </div>
                         )}
-                        {att?.type === "video" && (
-                          <video controls className="hub-msg-video"><source src={resolveUrl(att.url)} /></video>
-                        )}
-                        {att?.type === "document" && (
-                          <a href={resolveUrl(att.url)} target="_blank" rel="noopener noreferrer" className="hub-msg-file">📄 {att.fileName || "File"}</a>
-                        )}
-                        {att?.type === "link" && (
-                          <a href={att.url} target="_blank" rel="noopener noreferrer" className="hub-msg-file">🔗 {att.url}</a>
+                        <div className="hub-msg-bubble-wrap">
+                          {!isMine && (
+                            <div className="hub-msg-sender-name">{msg.sender?.name || "Unknown"}</div>
+                          )}
+                          <div className="hub-msg-bubble">
+                            {msg.text && <div className="hub-msg-text">{msg.text}</div>}
+                            {att?.type === "photo" && (
+                              <a href={resolveUrl(att.url)} target="_blank" rel="noopener noreferrer">
+                                <img
+                                  src={resolveUrl(att.url)}
+                                  alt="photo"
+                                  className="hub-msg-img"
+                                  onError={e => { e.target.style.display = "none"; }}
+                                />
+                              </a>
+                            )}
+                            {att?.type === "video" && (
+                              <video controls className="hub-msg-video"><source src={resolveUrl(att.url)} /></video>
+                            )}
+                            {att?.type === "document" && (
+                              <a href={resolveUrl(att.url)} target="_blank" rel="noopener noreferrer" className="hub-msg-file">
+                                📄 {att.fileName || "File"}
+                              </a>
+                            )}
+                            {att?.type === "link" && (
+                              <a href={att.url} target="_blank" rel="noopener noreferrer" className="hub-msg-file">
+                                🔗 {att.url}
+                              </a>
+                            )}
+                            <div className="hub-msg-time-row">
+                              <span className="hub-msg-time">
+                                {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        {isMine && (
+                          <div className="hub-msg-avatar">
+                            {msg.sender?.avatarUrl
+                              ? <img src={msg.sender.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} onError={e => e.target.style.display = "none"} />
+                              : (msg.sender?.name || "?")[0].toUpperCase()
+                            }
+                          </div>
                         )}
                       </div>
-                    </div>
+                    </React.Fragment>
                   );
-                })
-              )}
+                });
+              })()}
               <div ref={endRef} />
             </div>
           </>
