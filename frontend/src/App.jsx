@@ -7,7 +7,7 @@ import ChatPage from "./components/chat/ChatPage.jsx";
 import EmployeeLogin from "./pages/auth/EmployeeLogin.jsx";
 import SuperAdminDashboard from "./pages/admin/SuperAdminDashboard.jsx";
 import MeetPage from "./pages/meet/MeetPage.jsx";
-import BookmarksPage from "./pages/bookmarks/BookmarksPage.jsx";
+import UpdatesPage from "./pages/updates/UpdatesPage.jsx";
 import MessagePopupContainer from "./components/common/MessagePopup.jsx";
 import "./App.css";
 
@@ -47,7 +47,7 @@ function ProtectedApp() {
             <Route path=":chatId" element={<ChatPage />} />
           </Route>
           <Route path="/meet" element={<MeetPage />} />
-          <Route path="/bookmarks" element={<BookmarksPage />} />
+          <Route path="/updates" element={<UpdatesPage />} />
           <Route path="/admin" element={<Navigate to="/superadmin" replace />} />
           <Route path="/superadmin" element={<SuperAdminDashboard />} />
           <Route path="*" element={<Navigate to="/chats" replace />} />

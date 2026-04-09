@@ -86,6 +86,11 @@ function ProfileIcon() {
 const ICON_BY_ID = {
   chats: <ChatsIcon />,
   groups: <GroupsIcon />,
+  updates: (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path fill="currentColor" d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+    </svg>
+  ),
   meet: (
     <svg viewBox="0 0 48 48" width="22" height="22" aria-hidden="true">
       <path fill="#4285F4" d="M44 24c0-1.3-.1-2.5-.3-3.7H24v7h11.3c-.5 2.5-1.9 4.6-4 6v5h6.5C41.2 35 44 30 44 24z"/>
@@ -204,10 +209,9 @@ export default function Sidebar({ isChatOpen }) {
   }, []);
 
   const navItems = [
-    { id: "chats",    to: "/chats",    unread: totalDmUnread },
-    { id: "groups",   to: "/groups",   unread: totalGroupUnread },
-    { id: "meet",     to: "/meet",     unread: 0 },
-    { id: "bookmarks", to: "/bookmarks", unread: 0 },
+    { id: "chats",   to: "/chats",   unread: totalDmUnread },
+    { id: "groups",  to: "/groups",  unread: totalGroupUnread },
+    { id: "updates", to: "/updates", unread: notifUnread },
   ];
 
   const adminNavItems = [
@@ -509,26 +513,6 @@ export default function Sidebar({ isChatOpen }) {
               )}
             </NavLink>
           ))}
-
-          {/* Notification Bell */}
-          <button
-            type="button"
-            className={`sidebar-item ${showNotifPanel ? "active" : ""}`}
-            aria-label="Notifications"
-            title="Notifications"
-            onClick={() => setShowNotifPanel((p) => !p)}
-            style={{ position: "relative" }}
-          >
-            <span className="sidebar-icon">
-              <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-                <path fill="currentColor" d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
-              </svg>
-            </span>
-            <span className="sidebar-item-label">Notifs</span>
-            {notifUnread > 0 && (
-              <span className="sidebar-badge">{notifUnread > 99 ? "99+" : notifUnread}</span>
-            )}
-          </button>
 
           {isSuperAdminUser && (
             <>
@@ -947,17 +931,6 @@ export default function Sidebar({ isChatOpen }) {
     subtitle="Securing your session and redirecting"
   />
 )}
-
-      {showNotifPanel && (
-        <NotificationPanel
-          notifications={notifications}
-          unreadCount={notifUnread}
-          onMarkAllRead={markAllRead}
-          onMarkOne={markOneRead}
-          onDelete={deleteNotif}
-          onClose={() => setShowNotifPanel(false)}
-        />
-      )}
     </>
   );
 }
