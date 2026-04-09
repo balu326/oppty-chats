@@ -1319,41 +1319,84 @@ export default function ChatPage() {
       {/* Schedule Meet Modal */}
       {showMeetModal && (
         <div className="meetModalOverlay" onClick={() => setShowMeetModal(false)}>
-          <div className="meetModal meetModalSm" onClick={e => e.stopPropagation()}>
-            <div className="meetModalHeader">
-              <div className="meetModalHeaderLeft">
-                <svg viewBox="0 0 48 48" width="20" height="20">
+          <div className="chatMeetModal" onClick={e => e.stopPropagation()}>
+
+            {/* Header */}
+            <div className="chatMeetModal__header">
+              <div className="chatMeetModal__brand">
+                <svg viewBox="0 0 48 48" width="28" height="28">
                   <path fill="#4285F4" d="M44 24c0-1.3-.1-2.5-.3-3.7H24v7h11.3c-.5 2.5-1.9 4.6-4 6v5h6.5C41.2 35 44 30 44 24z"/>
                   <path fill="#34A853" d="M24 44c5.5 0 10.1-1.8 13.5-4.9l-6.5-5c-1.8 1.2-4.1 1.9-7 1.9-5.4 0-9.9-3.6-11.5-8.5H5.8v5.2C9.1 39.8 16 44 24 44z"/>
                   <path fill="#FBBC05" d="M12.5 27.5c-.4-1.2-.7-2.5-.7-3.8s.2-2.6.7-3.8v-5.2H5.8C4.6 17.1 4 20.5 4 24s.6 6.9 1.8 9.3l6.7-5.8z"/>
                   <path fill="#EA4335" d="M24 12.5c3 0 5.7 1 7.8 3l5.8-5.8C34.1 6.5 29.4 4.5 24 4.5 16 4.5 9.1 8.7 5.8 15.2l6.7 5.2c1.6-4.9 6.1-7.9 11.5-7.9z"/>
                 </svg>
-                <h2>Schedule Meet</h2>
+                <div>
+                  <div className="chatMeetModal__title">New Meeting</div>
+                  <div className="chatMeetModal__subtitle">Google Meet · Oppty Connect</div>
+                </div>
               </div>
-              <button className="meetModalClose" onClick={() => setShowMeetModal(false)}>✕</button>
+              <button className="chatMeetModal__close" onClick={() => setShowMeetModal(false)}>✕</button>
             </div>
-            <div className="meetForm">
-              <div className="meetFormGroup">
-                <label className="meetFormLabel">Meeting title</label>
-                <input className="meetFormInput" type="text" placeholder="e.g. Quick sync, Review..."
-                  value={meetForm.title} onChange={e => setMeetForm(f => ({ ...f, title: e.target.value }))} />
+
+            {/* Form */}
+            <div className="chatMeetModal__body">
+              <div className="chatMeetModal__field">
+                <label>Meeting title</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Quick sync, Sprint review…"
+                  value={meetForm.title}
+                  onChange={e => setMeetForm(f => ({ ...f, title: e.target.value }))}
+                  autoFocus
+                />
               </div>
-              <div className="meetFormGroup">
-                <label className="meetFormLabel">Date & Time</label>
-                <input className="meetFormInput" type="datetime-local"
-                  value={meetForm.scheduledAt} onChange={e => setMeetForm(f => ({ ...f, scheduledAt: e.target.value }))} />
+
+              <div className="chatMeetModal__field">
+                <label>Date & Time</label>
+                <input
+                  type="datetime-local"
+                  value={meetForm.scheduledAt}
+                  onChange={e => setMeetForm(f => ({ ...f, scheduledAt: e.target.value }))}
+                />
               </div>
-              <div className="meetFormGroup">
-                <label className="meetFormLabel">Meet link (optional — auto-generated if empty)</label>
-                <input className="meetFormInput" type="text" placeholder="https://meet.google.com/..."
-                  value={meetForm.meetLink} onChange={e => setMeetForm(f => ({ ...f, meetLink: e.target.value }))} />
+
+              <div className="chatMeetModal__field">
+                <label>Meet link <span style={{ color: "#aaa", fontWeight: 400 }}>(auto-generated if empty)</span></label>
+                <div className="chatMeetModal__link-row">
+                  <input
+                    type="text"
+                    placeholder="https://meet.google.com/xxx-xxxx-xxx"
+                    value={meetForm.meetLink}
+                    onChange={e => setMeetForm(f => ({ ...f, meetLink: e.target.value }))}
+                  />
+                  <button
+                    type="button"
+                    className="chatMeetModal__gen-btn"
+                    title="Generate new link"
+                    onClick={() => {
+                      const c = "abcdefghijklmnopqrstuvwxyz";
+                      const s = (n) => Array.from({ length: n }, () => c[Math.floor(Math.random() * c.length)]).join("");
+                      setMeetForm(f => ({ ...f, meetLink: `https://meet.google.com/${s(3)}-${s(4)}-${s(3)}` }));
+                    }}
+                  >↻</button>
+                </div>
               </div>
-              <div className="meetFormActions">
-                <button className="meetBtn meetBtnOutline" onClick={() => setShowMeetModal(false)}>Cancel</button>
-                <button className="meetBtn meetBtnPrimary" onClick={handleScheduleMeet} disabled={meetSaving}>
-                  {meetSaving ? "Scheduling…" : "Schedule & Share"}
-                </button>
-              </div>
+
+              {/* Who's invited */}
+              {chat.kind === "dm" && (
+                <div className="chatMeetModal__invitee">
+                  <span>👤</span>
+                  <span>{chat.name} will be invited automatically</span>
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="chatMeetModal__footer">
+              <button className="chatMeetModal__cancel" onClick={() => setShowMeetModal(false)}>Cancel</button>
+              <button className="chatMeetModal__submit" onClick={handleScheduleMeet} disabled={meetSaving}>
+                {meetSaving ? "Scheduling…" : "📅 Schedule & Share"}
+              </button>
             </div>
           </div>
         </div>
