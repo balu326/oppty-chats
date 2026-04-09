@@ -2212,3 +2212,87 @@
 }
 
 .chatMeetCard__join:hover { background: #1557b0; }
+
+/* ── Dark mode overrides ─────────────────────────────────────────────────── */
+[data-theme="dark"] .hub-page { background: var(--bg); }
+[data-theme="dark"] .hub-content { background: var(--panel); border-color: var(--border); }
+[data-theme="dark"] .hub-table th { background: var(--panel-2); color: var(--text-secondary); border-color: var(--border); }
+[data-theme="dark"] .hub-table td { color: var(--text); border-color: var(--border); }
+[data-theme="dark"] .hub-table tr:hover td { background: var(--wa-list-hover); }
+[data-theme="dark"] .hub-conv-header { background: var(--panel-2); color: var(--text); border-color: var(--border); }
+[data-theme="dark"] .hub-conv-row { border-color: var(--border); }
+[data-theme="dark"] .hub-conv-row:hover { background: var(--wa-list-hover); }
+[data-theme="dark"] .hub-conv-row.active { background: var(--accent-soft); }
+[data-theme="dark"] .hub-conv-name { color: var(--text); }
+[data-theme="dark"] .hub-conv-preview { color: var(--text-secondary); }
+[data-theme="dark"] .hub-search { background: var(--panel-2); border-color: var(--border); color: var(--text); }
+[data-theme="dark"] .hub-msg-view { background: var(--wa-chat-bg); }
+[data-theme="dark"] .hub-msg-header { background: var(--wa-header); border-color: var(--border); }
+[data-theme="dark"] .hub-msg-bubble { background: var(--wa-bubble-in); color: var(--wa-bubble-in-text); }
+[data-theme="dark"] .hub-msg-row.hub-msg-mine .hub-msg-bubble { background: var(--wa-bubble-out); color: var(--wa-bubble-out-text); }
+[data-theme="dark"] .hub-msg-text { color: var(--text); }
+[data-theme="dark"] .hub-emp-panel { background: var(--panel); border-color: var(--border); }
+[data-theme="dark"] .hub-panel-section { background: var(--panel-2); color: var(--text-muted); border-color: var(--border); }
+[data-theme="dark"] .hub-group-card { border-color: var(--border); }
+[data-theme="dark"] .hub-group-name { color: var(--text); }
+[data-theme="dark"] .hub-group-meta { color: var(--text-secondary); }
+[data-theme="dark"] .hub-member-chip { background: var(--panel-2); color: var(--text); }
+[data-theme="dark"] .hub-select { background: var(--panel-2); border-color: var(--border); color: var(--text); }
+[data-theme="dark"] .hub-modal { background: var(--panel); }
+[data-theme="dark"] .hub-modal-header h2 { color: var(--text); }
+[data-theme="dark"] .hub-field label { color: var(--text-secondary); }
+[data-theme="dark"] .hub-field input,
+[data-theme="dark"] .hub-field select,
+[data-theme="dark"] .hub-field textarea { background: var(--panel-2); border-color: var(--border); color: var(--text); }
+[data-theme="dark"] .hub-btn--secondary { background: var(--panel-2); color: var(--text); border-color: var(--border); }
+[data-theme="dark"] .hub-btn--ghost { background: transparent; color: var(--text-secondary); border-color: var(--border); }
+[data-theme="dark"] .hub-tabs { background: var(--panel); border-color: var(--border); }
+[data-theme="dark"] .hub-tab { color: var(--text-secondary); }
+[data-theme="dark"] .hub-tab:hover:not(.active) { background: var(--wa-list-hover); color: var(--text); }
+
+/* Updates page dark */
+[data-theme="dark"] .updates-page { background: var(--bg); }
+[data-theme="dark"] .updates-header h1 { color: var(--text); }
+[data-theme="dark"] .updates-section { background: var(--panel); border-color: var(--border); }
+[data-theme="dark"] .updates-section-header { border-color: var(--border); }
+[data-theme="dark"] .updates-section-title { color: var(--text); }
+[data-theme="dark"] .updates-item { border-color: var(--border); }
+[data-theme="dark"] .updates-item:hover { background: var(--wa-list-hover); }
+[data-theme="dark"] .updates-item-title { color: var(--text); }
+[data-theme="dark"] .updates-item-text { color: var(--text-secondary); }
+
+/* Bookmarks dark */
+[data-theme="dark"] .bookmarks-page { background: var(--bg); }
+[data-theme="dark"] .bookmark-card { background: var(--panel); border-color: var(--border); }
+[data-theme="dark"] .bookmark-text { color: var(--text); }
+
+/* Meet page dark */
+[data-theme="dark"] .meetPage { background: var(--bg); }
+[data-theme="dark"] .meetCard { background: var(--panel); border-color: var(--border); }
+[data-theme="dark"] .meetCardTitle { color: var(--text); }
+
+/* Chat meet card dark */
+[data-theme="dark"] .chatMeetCard { background: var(--panel); border-color: var(--border); }
+[data-theme="dark"] .chatMeetCard__title { color: var(--text); }
+[data-theme="dark"] .chatMeetCard__time { color: var(--text-secondary); }
+
+/* Notification panel dark */
+[data-theme="dark"] .notif-panel { background: var(--panel); }
+[data-theme="dark"] .notif-panel-header { background: var(--wa-header); border-color: var(--border); }
+[data-theme="dark"] .notif-panel-title { color: var(--text); }
+[data-theme="dark"] .notif-item { border-color: var(--border); }
+[data-theme="dark"] .notif-item:hover { background: var(--wa-list-hover); }
+[data-theme="dark"] .notif-title { color: var(--text); }
+[data-theme="dark"] .notif-text { color: var(--text-secondary); }
+[data-theme="dark"] .notif-close-btn { background: var(--panel-2); color: var(--text-secondary); }
+
+/* Login page dark */
+[data-theme="dark"] .login-page { background: var(--bg); }
+[data-theme="dark"] .login-card { background: var(--panel); border-color: var(--border); }
+[data-theme="dark"] .login-header h1 { color: var(--text); }
+[data-theme="dark"] .login-header p { color: var(--text-secondary); }
+[data-theme="dark"] .field label { color: var(--text-secondary); }
+[data-theme="dark"] .field input { background: var(--panel-2); border-color: var(--border); color: var(--text); }
+[data-theme="dark"] .popup-card { background: var(--panel); border-color: var(--border); }
+[data-theme="dark"] .popup-top h2 { color: var(--text); }
+[data-theme="dark"] .popup-desc { color: var(--text-secondary); }

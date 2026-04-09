@@ -1,11 +1,11 @@
 :root {
   --sidebar-width: 80px;
-  --sidebar-bg: #ffffff;
-  --sidebar-icon-color: #667781;
-  --sidebar-icon-active: #111b21;
-  --sidebar-active-bg: #fff5f0;
-  --sidebar-hover-bg: #f5f6f6;
-  --sidebar-border: #e9edef;
+  --sidebar-bg: var(--panel);
+  --sidebar-icon-color: var(--text-secondary);
+  --sidebar-icon-active: var(--text);
+  --sidebar-active-bg: var(--accent-soft);
+  --sidebar-hover-bg: var(--wa-list-hover);
+  --sidebar-border: var(--border);
   --sidebar-blue: #ff6b35;
   --sidebar-green: #10b981;
 }
@@ -300,10 +300,10 @@
   bottom: 12px;
   left: 92px;
   width: 300px;
-  background: #ffffff;
-  border: 1px solid #e9edef;
+  background: var(--panel);
+  border: 1px solid var(--border);
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
   padding: 16px;
   z-index: 9999;
   animation: popupFadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -393,14 +393,14 @@
   margin: 0;
   font-size: 16px;
   font-weight: 700;
-  color: #111b21;
+  color: var(--text);
   letter-spacing: -0.3px;
 }
 
 .profile-popup-user p {
   margin: 5px 0 0;
   font-size: 13px;
-  color: #667781;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -410,7 +410,7 @@
   width: 100%;
   border: none;
   background: transparent;
-  color: #111b21;
+  color: var(--text);
   text-align: left;
   border-radius: 10px;
   padding: 11px 12px;
@@ -420,7 +420,7 @@
   transition: all 0.15s;
 }
 
-.profile-menu-btn:hover { background: #f5f6f6; transform: translateX(2px); }
+.profile-menu-btn:hover { background: var(--panel-2); transform: translateX(2px); }
 
 .profile-menu-btn-danger { color: #e41e3f; }
 .profile-menu-btn-danger:hover { background: #fff0f2; color: #e41e3f; }
@@ -447,8 +447,8 @@
 }
 
 .popup-btn-secondary {
-  background: #f5f6f6;
-  color: #111b21;
+  background: var(--panel-2);
+  color: var(--text);
 }
 
 .popup-btn-secondary:hover {
@@ -485,7 +485,7 @@
 }
 
 .profile-detail-card {
-  background: #f5f6f6;
+  background: var(--panel-2);
   border-radius: 12px;
   padding: 12px 14px;
   display: flex;
@@ -496,14 +496,14 @@
 .profile-detail-label {
   font-size: 11px;
   font-weight: 700;
-  color: #667781;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.6px;
 }
 
 .profile-detail-value {
   font-size: 14px;
-  color: #111b21;
+  color: var(--text);
   line-height: 1.6;
   font-weight: 500;
 }
@@ -523,7 +523,7 @@
 .profile-input-label {
   font-size: 11px;
   font-weight: 700;
-  color: #667781;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.6px;
 }
@@ -531,11 +531,11 @@
 .profile-input {
   width: 100%;
   border: 1px solid #f5f6f6;
-  background: #f5f6f6;
+  background: var(--panel-2);
   border-radius: 12px;
   padding: 12px 14px;
   font-size: 14px;
-  color: #111b21;
+  color: var(--text);
   outline: none;
   box-sizing: border-box;
   font-weight: 500;
@@ -543,7 +543,7 @@
 }
 
 .profile-input::placeholder {
-  color: #8696a0;
+  color: var(--text-muted);
 }
 
 .profile-input:focus {
@@ -590,7 +590,7 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: #f5f6f6;
+  background: var(--panel-2);
   color: var(--sidebar-blue);
   display: flex;
   align-items: center;
@@ -603,7 +603,7 @@
   margin: 0 0 10px;
   font-size: 18px;
   font-weight: 700;
-  color: #111b21;
+  color: var(--text);
   letter-spacing: -0.3px;
 }
 
@@ -611,7 +611,7 @@
   margin: 0 0 18px;
   font-size: 14px;
   line-height: 1.6;
-  color: #667781;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -648,7 +648,7 @@
 .create-popup-title {
   font-size: 16px;
   font-weight: 700;
-  color: #111b21;
+  color: var(--text);
   margin-bottom: 14px;
   letter-spacing: -0.3px;
 }
@@ -663,7 +663,7 @@
   width: 100%;
   border: none;
   background: transparent;
-  color: #111b21;
+  color: var(--text);
   text-align: left;
   border-radius: 12px;
   padding: 13px 14px;
@@ -674,7 +674,7 @@
 }
 
 .create-menu-btn:hover {
-  background: #f5f6f6;
+  background: var(--panel-2);
   transform: translateX(4px);
 }
 
@@ -859,5 +859,6 @@
     bottom: 72px;
   }
 }
+
 
 
