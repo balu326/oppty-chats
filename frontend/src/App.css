@@ -1920,3 +1920,13 @@
   0%, 80%, 100% { transform: scale(0.7); opacity: 0.5; }
   40%           { transform: scale(1);   opacity: 1; }
 }
+
+/* ── Schedule Meet in attach menu ───────────────────────────────────────── */
+.attachMenuItem--meet {
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+  padding-top: 12px;
+  color: #1a73e8;
+  font-weight: 600;
+  gap: 8px;
+}

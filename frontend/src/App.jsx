@@ -7,9 +7,7 @@ import ChatPage from "./components/chat/ChatPage.jsx";
 import EmployeeLogin from "./pages/auth/EmployeeLogin.jsx";
 import SuperAdminDashboard from "./pages/admin/SuperAdminDashboard.jsx";
 import MeetPage from "./pages/meet/MeetPage.jsx";
-import SettingsPage from "./pages/settings/SettingsPage.jsx";
 import BookmarksPage from "./pages/bookmarks/BookmarksPage.jsx";
-import { ThemeProvider } from "./context/ThemeContext.jsx";
 import MessagePopupContainer from "./components/common/MessagePopup.jsx";
 import "./App.css";
 
@@ -49,7 +47,6 @@ function ProtectedApp() {
             <Route path=":chatId" element={<ChatPage />} />
           </Route>
           <Route path="/meet" element={<MeetPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/bookmarks" element={<BookmarksPage />} />
           <Route path="/admin" element={<Navigate to="/superadmin" replace />} />
           <Route path="/superadmin" element={<SuperAdminDashboard />} />
@@ -63,11 +60,9 @@ function ProtectedApp() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <Routes>
-        <Route path="/login" element={<EmployeeLogin />} />
-        <Route path="/*" element={<ProtectedApp />} />
-      </Routes>
-    </ThemeProvider>
+    <Routes>
+      <Route path="/login" element={<EmployeeLogin />} />
+      <Route path="/*" element={<ProtectedApp />} />
+    </Routes>
   );
 }

@@ -96,6 +96,9 @@ export default function ChatPage() {
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [showEmojiTray, setShowEmojiTray] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
+  const [showMeetModal, setShowMeetModal] = useState(false);
+  const [meetForm, setMeetForm] = useState({ title: "", scheduledAt: "", meetLink: "" });
+  const [meetSaving, setMeetSaving] = useState(false);
   const [websocketAvailable, setWebsocketAvailable] = useState(true);
   // Selection & forward state
   const [selectedMsgs, setSelectedMsgs] = useState(new Set());
@@ -692,6 +695,46 @@ export default function ChatPage() {
     setShowAttachMenu(false);
   };
 
+  const handleScheduleMeet = async () => {
+    if (!meetForm.title.trim() || !meetForm.scheduledAt) {
+      triggerToast("Title and date/time are required", "warning");
+      return;
+    }
+    setMeetSaving(true);
+    const auth = getAuthUser();
+    // Generate a meet link if not provided
+    const c = "abcdefghijklmnopqrstuvwxyz";
+    const s = (n) => Array.from({ length: n }, () => c[Math.floor(Math.random() * c.length)]).join("");
+    const meetLink = meetForm.meetLink || `https://meet.google.com/${s(3)}-${s(4)}-${s(3)}`;
+
+    try {
+      const res = await fetch(`${API_URL}/meetings`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${auth?.token}` },
+        body: JSON.stringify({
+          title: meetForm.title.trim(),
+          meetLink,
+          scheduledAt: meetForm.scheduledAt,
+          invitees: chat.kind === "dm" && chat.employeeId ? [chat.employeeId] : [],
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Send the meet link as a message in the chat
+        sendMessage(chat.id, `📅 Meeting: ${meetForm.title.trim()}\n🕐 ${new Date(meetForm.scheduledAt).toLocaleString()}\n🔗 ${meetLink}`);
+        triggerToast("Meeting scheduled!", "success");
+        setShowMeetModal(false);
+        setMeetForm({ title: "", scheduledAt: "", meetLink: "" });
+      } else {
+        triggerToast(data.message || "Failed to schedule", "error");
+      }
+    } catch {
+      triggerToast("Failed to schedule meeting", "error");
+    } finally {
+      setMeetSaving(false);
+    }
+  };
+
   const handleTakePhoto = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -1250,6 +1293,49 @@ export default function ChatPage() {
         </div>
       )}
 
+      {/* Schedule Meet Modal */}
+      {showMeetModal && (
+        <div className="meetModalOverlay" onClick={() => setShowMeetModal(false)}>
+          <div className="meetModal meetModalSm" onClick={e => e.stopPropagation()}>
+            <div className="meetModalHeader">
+              <div className="meetModalHeaderLeft">
+                <svg viewBox="0 0 48 48" width="20" height="20">
+                  <path fill="#4285F4" d="M44 24c0-1.3-.1-2.5-.3-3.7H24v7h11.3c-.5 2.5-1.9 4.6-4 6v5h6.5C41.2 35 44 30 44 24z"/>
+                  <path fill="#34A853" d="M24 44c5.5 0 10.1-1.8 13.5-4.9l-6.5-5c-1.8 1.2-4.1 1.9-7 1.9-5.4 0-9.9-3.6-11.5-8.5H5.8v5.2C9.1 39.8 16 44 24 44z"/>
+                  <path fill="#FBBC05" d="M12.5 27.5c-.4-1.2-.7-2.5-.7-3.8s.2-2.6.7-3.8v-5.2H5.8C4.6 17.1 4 20.5 4 24s.6 6.9 1.8 9.3l6.7-5.8z"/>
+                  <path fill="#EA4335" d="M24 12.5c3 0 5.7 1 7.8 3l5.8-5.8C34.1 6.5 29.4 4.5 24 4.5 16 4.5 9.1 8.7 5.8 15.2l6.7 5.2c1.6-4.9 6.1-7.9 11.5-7.9z"/>
+                </svg>
+                <h2>Schedule Meet</h2>
+              </div>
+              <button className="meetModalClose" onClick={() => setShowMeetModal(false)}>✕</button>
+            </div>
+            <div className="meetForm">
+              <div className="meetFormGroup">
+                <label className="meetFormLabel">Meeting title</label>
+                <input className="meetFormInput" type="text" placeholder="e.g. Quick sync, Review..."
+                  value={meetForm.title} onChange={e => setMeetForm(f => ({ ...f, title: e.target.value }))} />
+              </div>
+              <div className="meetFormGroup">
+                <label className="meetFormLabel">Date & Time</label>
+                <input className="meetFormInput" type="datetime-local"
+                  value={meetForm.scheduledAt} onChange={e => setMeetForm(f => ({ ...f, scheduledAt: e.target.value }))} />
+              </div>
+              <div className="meetFormGroup">
+                <label className="meetFormLabel">Meet link (optional — auto-generated if empty)</label>
+                <input className="meetFormInput" type="text" placeholder="https://meet.google.com/..."
+                  value={meetForm.meetLink} onChange={e => setMeetForm(f => ({ ...f, meetLink: e.target.value }))} />
+              </div>
+              <div className="meetFormActions">
+                <button className="meetBtn meetBtnOutline" onClick={() => setShowMeetModal(false)}>Cancel</button>
+                <button className="meetBtn meetBtnPrimary" onClick={handleScheduleMeet} disabled={meetSaving}>
+                  {meetSaving ? "Scheduling…" : "Schedule & Share"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Reply bar */}
       {replyTo && (
         <div className="replyBar">
@@ -1307,6 +1393,19 @@ export default function ChatPage() {
                 onClick={handleOpenLinkModal}
               >
                 🔗 Link
+              </button>
+              <button
+                type="button"
+                className="attachMenuItem attachMenuItem--meet"
+                onClick={() => { setShowAttachMenu(false); setShowMeetModal(true); }}
+              >
+                <svg viewBox="0 0 48 48" width="16" height="16" style={{flexShrink:0}}>
+                  <path fill="#4285F4" d="M44 24c0-1.3-.1-2.5-.3-3.7H24v7h11.3c-.5 2.5-1.9 4.6-4 6v5h6.5C41.2 35 44 30 44 24z"/>
+                  <path fill="#34A853" d="M24 44c5.5 0 10.1-1.8 13.5-4.9l-6.5-5c-1.8 1.2-4.1 1.9-7 1.9-5.4 0-9.9-3.6-11.5-8.5H5.8v5.2C9.1 39.8 16 44 24 44z"/>
+                  <path fill="#FBBC05" d="M12.5 27.5c-.4-1.2-.7-2.5-.7-3.8s.2-2.6.7-3.8v-5.2H5.8C4.6 17.1 4 20.5 4 24s.6 6.9 1.8 9.3l6.7-5.8z"/>
+                  <path fill="#EA4335" d="M24 12.5c3 0 5.7 1 7.8 3l5.8-5.8C34.1 6.5 29.4 4.5 24 4.5 16 4.5 9.1 8.7 5.8 15.2l6.7 5.2c1.6-4.9 6.1-7.9 11.5-7.9z"/>
+                </svg>
+                Schedule Meet
               </button>
               <button 
                 type="button" 
