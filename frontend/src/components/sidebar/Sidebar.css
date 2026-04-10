@@ -839,13 +839,13 @@
 
 @media (max-width: 480px) {
   .sidebar {
-    height: 64px;
+    height: calc(60px + env(safe-area-inset-bottom, 0px));
   }
 
   .sidebar-item,
   .sidebar-profile,
   .sidebar-create-btn {
-    height: 64px !important;
+    height: 60px !important;
   }
 
   .profile-popup,
