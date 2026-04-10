@@ -11,7 +11,9 @@ function setVh() {
 }
 setVh();
 window.addEventListener("resize", setVh);
-window.addEventListener("orientationchange", () => setTimeout(setVh, 100));
+window.addEventListener("orientationchange", () => setTimeout(setVh, 200));
+// Re-run after page fully loads (handles PWA standalone mode)
+window.addEventListener("load", () => setTimeout(setVh, 100));
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>

@@ -2334,3 +2334,22 @@
 [data-theme="dark"] .popup-card { background: var(--panel); border-color: var(--border); }
 [data-theme="dark"] .popup-top h2 { color: var(--text); }
 [data-theme="dark"] .popup-desc { color: var(--text-secondary); }
+
+/* ── PWA standalone mode (saved to home screen) ─────────────────────────── */
+@media (display-mode: standalone) {
+  .main-content {
+    height: calc(var(--vh, 1vh) * 100);
+    padding-bottom: 0;
+  }
+
+  /* In standalone, no browser chrome — composer just needs safe area */
+  .composer {
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* Chat list needs bottom padding for nav + safe area */
+  .chatListPanel,
+  .sidebarInner {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+}
