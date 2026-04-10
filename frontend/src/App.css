@@ -710,7 +710,7 @@
     margin-left: 0;
     width: 100vw;
     height: calc(var(--vh, 1vh) * 100);
-    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: 0;
     background: var(--bg);
     overflow: hidden;
     box-sizing: border-box;
@@ -758,7 +758,7 @@
   }
 
   .composer {
-    padding: 8px 10px 8px;
+    padding: 8px 10px calc(8px + 64px + env(safe-area-inset-bottom, 0px));
     gap: 6px;
     flex-shrink: 0;
     background: var(--wa-composer-bg);
