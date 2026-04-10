@@ -2300,3 +2300,37 @@
   }
 }
 
+
+/* ── Pinned message ─────────────────────────────────────────────────────── */
+.pinnedBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.pinnedBannerText {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.pinnedIndicator {
+  font-size: 11px;
+  color: var(--wa-teal);
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+
+.bubble--pinned {
+  border-left: 3px solid var(--wa-teal);
+}

@@ -557,6 +557,22 @@ function reducer(state, action) {
       return { chats: next };
     }
 
+    case "PIN_MESSAGE": {
+      const next = state.chats.map((chat) => {
+        if (String(chat.id) !== String(action.chatId)) return chat;
+        return {
+          ...chat,
+          messages: chat.messages.map(m =>
+            String(m.id) === String(action.msgId)
+              ? { ...m, pinned: !m.pinned }
+              : m
+          ),
+        };
+      });
+      saveChats(next);
+      return { chats: next };
+    }
+
     case "MARK_MESSAGES_READ": {
       // Mark all messages in a chat as read
       const next = state.chats.map((chat) => {
@@ -707,6 +723,7 @@ export function ChatProvider({ children }) {
       markRead,
       sendMessage: (chatId, text, replyTo = null) => dispatch({ type: "SEND", chatId, text, replyTo }),
       deleteMessage: (chatId, msgId) => dispatch({ type: "DELETE_MESSAGE", chatId, msgId }),
+      pinMessage: (chatId, msgId) => dispatch({ type: "PIN_MESSAGE", chatId, msgId }),
       updateChatName: (chatId, name) =>
         dispatch({ type: "UPDATE_CHAT_NAME", chatId, name }),
       addContact: (payload) => dispatch({ type: "ADD_CONTACT", payload }),

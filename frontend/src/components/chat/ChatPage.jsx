@@ -64,6 +64,7 @@ export default function ChatPage() {
     getChatById,
     sendMessage,
     deleteMessage,
+    pinMessage,
     updateChatName,
     deleteChat,
     toggleBlockChat,
@@ -1165,6 +1166,15 @@ export default function ChatPage() {
       )}
 
       <section className="messages" aria-label="Messages">
+        {/* Pinned messages banner */}
+        {chat.messages?.filter(m => m.pinned).length > 0 && (
+          <div className="pinnedBanner">
+            <span>📌</span>
+            <span className="pinnedBannerText">
+              {chat.messages.filter(m => m.pinned).slice(-1)[0]?.text || "📎 Attachment"}
+            </span>
+          </div>
+        )}
         {loadingMessages && (
           <div className="loadingMessages">
             <div className="loadingDots"><span/><span/><span/></div>
@@ -1231,6 +1241,7 @@ export default function ChatPage() {
                         onReact={handleReact}
                         onSelect={() => toggleSelectMsg(String(m.id))}
                         onBookmark={handleBookmark}
+                        onPin={(msg) => pinMessage(chatId, msg.id)}
                       />
                     </div>
                   </div>
