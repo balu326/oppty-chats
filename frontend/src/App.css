@@ -772,113 +772,59 @@
 ======================== */
 @media (max-width: 480px) {
 
-  /* â”€â”€ Chat list â”€â”€ */
-  .sidebarTop { padding: 12px 14px 10px; }
+  /* Chat list */
+  .sidebarTop { padding: 16px 16px 12px; }
+  .brandRow { margin-bottom: 12px; gap: 4px; }
+  .opptyLogo { height: 26px; max-width: 80px; }
+  .sectionTitle { font-size: 20px; }
+  .searchInput { padding: 11px 16px 11px 38px; font-size: 15px; border-radius: 12px; }
+  .chatList { padding: 4px 0; }
+  .chatRow { padding: 13px 16px; gap: 14px; }
+  .avatar, .avatarInitials { width: 50px; height: 50px; }
+  .chatRowBody { padding-bottom: 14px; }
+  .chatName { font-size: 16px; font-weight: 600; }
+  .chatTime { font-size: 12px; }
+  .chatPreview { font-size: 14px; margin-top: 2px; }
 
-  .brandRow { margin-bottom: 10px; gap: 2px; }
+  /* Chat header */
+  .chatHeader { height: 62px; padding: 0 14px; gap: 12px; }
+  .chatHeader .avatar { width: 40px; height: 40px; }
+  .chatHeaderName { font-size: 16px; font-weight: 600; }
+  .chatHeaderMeta { font-size: 12px; margin-top: 2px; }
+  .iconBtn { width: 40px; height: 40px; font-size: 20px; }
 
-  .opptyLogo { height: 24px; max-width: 72px; }
+  /* Messages */
+  .messages { padding: 14px 12px; }
+  .bubbleRow { margin: 2px 0; }
+  .bubbleContent { max-width: 80%; }
+  .bubble { padding: 9px 12px 7px; border-radius: 12px; }
+  .bubble.mine { border-top-right-radius: 3px; }
+  .bubble.theirs { border-top-left-radius: 3px; }
+  .bubbleText { font-size: 15px; line-height: 1.5; }
+  .bubbleMeta { font-size: 11px; margin-top: 3px; gap: 4px; }
+  .dayChip { font-size: 12px; padding: 5px 12px; margin: 10px auto; }
+  .senderName { font-size: 13px; margin-bottom: 3px; }
+  .bubbleSenderAvatar { width: 30px; height: 30px; }
+  .bubbleAvatarImg { width: 30px; height: 30px; }
+  .bubbleAvatarInitial { width: 30px; height: 30px; font-size: 12px; }
 
-  .sectionTitle { font-size: 18px; }
+  /* Composer */
+  .composer { padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px)); gap: 8px; }
+  .composerCenter { padding: 10px 14px; border-radius: 24px; gap: 6px; min-height: 46px; }
+  .composerInput { font-size: 16px; min-height: 24px; line-height: 1.4; }
+  .attachBtn { width: 40px; height: 40px; }
+  .emojiBtn { width: 32px; height: 32px; font-size: 20px; }
+  .sendBtn { width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0; }
 
-  .searchInput {
-    padding: 9px 14px 9px 36px;
-    font-size: 14px;
-    border-radius: 10px;
-  }
+  /* Reply bar */
+  .replyBar { padding: 8px 12px; gap: 10px; }
+  .replyBarLine { height: 34px; width: 4px; }
+  .replyBarName { font-size: 13px; }
+  .replyBarText { font-size: 13px; }
 
-  .chatRow { padding: 10px 14px; gap: 12px; }
-
-  .avatar, .avatarInitials { width: 46px; height: 46px; }
-
-  .chatName { font-size: 15px; }
-  .chatTime { font-size: 11px; }
-  .chatPreview { font-size: 13px; }
-
-  /* â”€â”€ Chat window â”€â”€ */
-  .chatHeader {
-    height: 56px;
-    padding: 0 10px;
-    gap: 8px;
-    background: var(--wa-header);
-  }
-
-  .chatHeader .avatar { width: 36px; height: 36px; }
-
-  .chatHeaderName { font-size: 15px; font-weight: 600; }
-  .chatHeaderMeta { font-size: 12px; }
-
-  .iconBtn { width: 36px; height: 36px; font-size: 18px; }
-
-  /* â”€â”€ Messages â”€â”€ */
-  .messages {
-    padding: 10px 8px;
-    background: var(--wa-chat-bg);
-  }
-
-  .bubbleContent { max-width: 82%; }
-
-  .bubble {
-    padding: 7px 10px 6px;
-    border-radius: 10px;
-    box-shadow: 0 1px 1px rgba(0,0,0,0.1);
-  }
-
-  .bubble.mine  { border-top-right-radius: 2px; }
-  .bubble.theirs { border-top-left-radius: 2px; }
-
-  .bubbleText { font-size: 14.5px; line-height: 1.45; }
-
-  .bubbleMeta { font-size: 10px; margin-top: 2px; }
-
-  .dayChip { font-size: 11.5px; padding: 4px 10px; }
-
-  .senderName { font-size: 12px; }
-
-  /* â”€â”€ Composer â”€â”€ */
-  .composer {
-    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
-    gap: 6px;
-    background: var(--wa-composer-bg);
-  }
-
-  .composerCenter {
-    padding: 8px 10px;
-    border-radius: 22px;
-    gap: 4px;
-  }
-
-  .composerInput {
-    font-size: 15px;
-    min-height: 22px;
-  }
-
-  .attachBtn { width: 36px; height: 36px; }
-
-  .emojiBtn { width: 30px; height: 30px; font-size: 18px; }
-
-  .sendBtn {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  /* â”€â”€ Reply bar â”€â”€ */
-  .replyBar { padding: 6px 10px; }
-  .replyBarLine { height: 30px; }
-  .replyBarName { font-size: 12px; }
-  .replyBarText { font-size: 12px; }
-
-  /* â”€â”€ Attach menu â”€â”€ */
-  .attachMenu {
-    bottom: 52px;
-    left: 0;
-    min-width: 180px;
-    border-radius: 14px;
-  }
-
-  .attachMenuItem { padding: 10px 14px; font-size: 14px; }
+  /* Attach menu */
+  .attachMenu { bottom: 60px; left: 0; min-width: 200px; border-radius: 16px; padding: 10px; }
+  .attachMenuItem { padding: 12px 16px; font-size: 15px; gap: 12px; }
 }
 
 
@@ -2353,3 +2299,4 @@
     padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   }
 }
+
