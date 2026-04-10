@@ -707,7 +707,7 @@
     bottom: 0;
     left: 0;
     width: 100%;
-    height: calc(70px + env(safe-area-inset-bottom, 0px));
+    height: calc(64px + env(safe-area-inset-bottom, 0px));
     border-right: none;
     border-top: 1px solid var(--sidebar-border);
     flex-direction: row;

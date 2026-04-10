@@ -706,23 +706,45 @@
   .main-content {
     margin-left: 0;
     width: 100vw;
-    height: 100dvh;
-    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px));
+    padding-bottom: 0;
   }
 
-  .chatShell { width: 100%; height: 100%; }
-  .chatListPanel { width: 100%; min-width: 100%; border-right: none; }
-  .chatPanel { width: 100%; }
+  .main-content-workspace {
+    overflow: hidden;
+  }
+
+  .chatShell {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chatListPanel { width: 100%; min-width: 100%; border-right: none; height: 100%; }
+  .chatPanel { width: 100%; flex: 1; height: 100%; }
+
+  .chat {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 10px;
+    min-height: 0;
+  }
 
   .sidebarTop { padding: 16px 16px 12px; }
 
-  .chatHeader { height: 60px; padding: 0 12px; gap: 10px; }
-
-  .messages { padding: 12px 10px; }
+  .chatHeader { height: 60px; padding: 0 12px; gap: 10px; flex-shrink: 0; }
 
   .composer {
     padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
     gap: 6px;
+    flex-shrink: 0;
   }
 
   .bubbleContent { max-width: min(520px, 78%); }
