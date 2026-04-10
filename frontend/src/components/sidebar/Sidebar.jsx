@@ -709,7 +709,7 @@ export default function Sidebar({ isChatOpen }) {
               onClick={handleTogglePopup}
             >
               {isSuperAdminUser ? (
-                <span className="sidebar-admin-text">AD</span>
+                <ProfileAvatar photo={profile.photo} name={profile.name} size={36} />
               ) : (
                 <ProfileAvatar photo={profile.photo} name={profile.name} size={36} />
               )}
@@ -795,14 +795,9 @@ export default function Sidebar({ isChatOpen }) {
                 {isViewingProfile && !showLogoutConfirm && (
                   <>
                     <div className="profile-popup-header">
-                      {isSuperAdminUser ? (
-                        <div className="profile-popup-admin-avatar profile-popup-admin-avatar-large">AD</div>
-                      ) : (
-                        <ProfileAvatar photo={profile.photo} name={profile.name} size={58} />
-                      )}
-
+                      <ProfileAvatar photo={profile.photo} name={profile.name} size={58} />
                       <div className="profile-popup-user">
-                        <h4>{isSuperAdminUser ? `${profile.name} (Admin)` : profile.name}</h4>
+                        <h4>{profile.name}{isSuperAdminUser ? " (Admin)" : ""}</h4>
                         <p>{profile.email}</p>
                       </div>
                     </div>
@@ -841,12 +836,7 @@ export default function Sidebar({ isChatOpen }) {
                 {isEditingProfile && !showLogoutConfirm && (
                   <>
                     <div className="profile-popup-header">
-                      {isSuperAdminUser ? (
-                        <div className="profile-popup-admin-avatar">AD</div>
-                      ) : (
-                        <ProfileAvatar photo={draftPhoto} name={draftName} size={46} />
-                      )}
-
+                      <ProfileAvatar photo={draftPhoto} name={draftName} size={46} />
                       <div className="profile-popup-user">
                         <h4>Edit Profile</h4>
                         <p>Update your name and photo</p>
