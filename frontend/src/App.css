@@ -39,15 +39,16 @@
 ======================== */
 .app {
   width: 100vw;
-  min-height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
   background: var(--bg);
   display: flex;
+  overflow: hidden;
 }
 
 .main-content {
   margin-left: var(--sidebar-width);
   width: calc(100vw - var(--sidebar-width));
-  height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
   background: var(--bg);
   transition: margin-left var(--transition);
 }
@@ -706,7 +707,7 @@
   .main-content {
     margin-left: 0;
     width: 100vw;
-    height: calc(100dvh - 64px - env(safe-area-inset-bottom, 0px));
+    height: calc(var(--vh, 1vh) * 100 - 64px - env(safe-area-inset-bottom, 0px));
     padding-bottom: 0;
   }
 
@@ -728,6 +729,7 @@
     height: 100%;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
   }
 
   .messages {
@@ -739,7 +741,7 @@
 
   .sidebarTop { padding: 16px 16px 12px; }
 
-  .chatHeader { height: 60px; padding: 0 12px; gap: 10px; flex-shrink: 0; }
+  .chatHeader { height: 56px; padding: 0 12px; gap: 10px; flex-shrink: 0; }
 
   .composer {
     padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));

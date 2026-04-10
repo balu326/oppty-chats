@@ -5,8 +5,15 @@ import App from "./App.jsx";
 import "./index.css";
 import { ChatProvider } from "./context/ChatContext.jsx";
 
+// Fix iOS Safari viewport height — sets --vh CSS variable to real inner height
+function setVh() {
+  document.documentElement.style.setProperty("--vh", `${window.innerHeight * 0.01}px`);
+}
+setVh();
+window.addEventListener("resize", setVh);
+window.addEventListener("orientationchange", () => setTimeout(setVh, 100));
+
 ReactDOM.createRoot(document.getElementById("root")).render(
-  // ✅ Removed StrictMode - it causes double event firing in development
   <BrowserRouter>
     <ChatProvider>
       <App />

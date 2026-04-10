@@ -18,7 +18,7 @@
   top: 0;
   left: 0;
   width: var(--sidebar-width);
-  height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
   background: var(--sidebar-bg);
   border-right: 1px solid var(--sidebar-border);
   display: flex;
