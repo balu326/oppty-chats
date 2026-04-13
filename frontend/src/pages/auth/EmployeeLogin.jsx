@@ -146,8 +146,11 @@ export default function EmployeeLogin() {
         {/* Left branding panel */}
         <div className="login-left">
           <div className="login-brand">
-            <img src={companyLogo} alt="Oppty" className="login-brand-logo" />
-            <p>Your team's communication hub —<br />fast, simple, and always in sync.</p>
+            <div className="login-brand-logo-wrap">
+              <img src={companyLogo} alt="Oppty" className="login-brand-logo" />
+              <span className="login-brand-connect">Connect</span>
+            </div>
+            <p className="login-brand-tagline">Your team's communication hub —<br />fast, simple, and always in sync.</p>
             <div className="login-brand-features">
               <div className="login-feature-item">
                 <span className="login-feature-icon">💬</span>
