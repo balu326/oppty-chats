@@ -1,7 +1,7 @@
 .al-overlay {
   position: fixed;
   inset: 0;
-  background: linear-gradient(160deg, #ff6b35 0%, #ff8a00 40%, #ffb347 70%, #ff6b35 100%);
+  background: linear-gradient(160deg, #ffffff 0%, #fff8f5 40%, #fff0e8 70%, #ffffff 100%);
   background-size: 300% 300%;
   animation: alGradient 5s ease infinite;
   display: flex;
@@ -33,8 +33,6 @@
   width: 180px;
   height: auto;
   object-fit: contain;
-  filter: brightness(0) invert(1);
-  drop-shadow: 0 8px 32px rgba(0,0,0,0.2);
   animation: alLogoBob 3s ease-in-out infinite;
 }
 
@@ -43,18 +41,17 @@
   50%       { transform: translateY(-10px); }
 }
 
-/* Progress bar */
 .al-bar {
   width: 160px;
   height: 3px;
-  background: rgba(255,255,255,0.3);
+  background: rgba(255, 107, 53, 0.2);
   border-radius: 99px;
   overflow: hidden;
 }
 
 .al-bar-fill {
   height: 100%;
-  background: #ffffff;
+  background: linear-gradient(90deg, #ff6b35, #ff8a00);
   border-radius: 99px;
   animation: alBarFill 2s ease-in-out infinite;
 }
@@ -68,7 +65,7 @@
 .al-subtitle {
   margin: 0;
   font-size: 14px;
-  color: rgba(255,255,255,0.85);
+  color: #888888;
   font-weight: 500;
   letter-spacing: 0.3px;
 }
