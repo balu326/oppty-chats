@@ -726,13 +726,9 @@ export default function Sidebar({ isChatOpen }) {
                 {!isEditingProfile && !isViewingProfile && !showLogoutConfirm && (
                   <>
                     <div className="profile-popup-header">
-                      {isSuperAdminUser ? (
-                        <div className="profile-popup-admin-avatar">AD</div>
-                      ) : (
-                        <ProfileAvatar photo={profile.photo} name={profile.name} size={46} />
-                      )}
+                      <ProfileAvatar photo={profile.photo} name={profile.name} size={46} />
                       <div className="profile-popup-user">
-                        <h4>{isSuperAdminUser ? `${profile.name} (Admin)` : profile.name}</h4>
+                        <h4>{profile.name}{isSuperAdminUser ? " (Admin)" : ""}</h4>
                         <p>{profile.email}</p>
                       </div>
                     </div>

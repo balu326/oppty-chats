@@ -873,7 +873,10 @@ export default function ChatPage() {
           aria-label="Open profile info"
           title="View profile"
         >
-          <img className="avatar" src={chat.avatarUrl} alt={chat.name} />
+          <div className="avatarWrap">
+            <img className="avatar" src={chat.avatarUrl} alt={chat.name} />
+            {chat.isOnline && <span className="onlineDot" />}
+          </div>
         </button>
 
         <button
