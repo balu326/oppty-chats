@@ -120,8 +120,13 @@ function MessagePopup({ popup, onDismiss, onClick }) {
     >
       <div className="msg-popup-avatar">
         {popup.senderAvatar
-          ? <img src={popup.senderAvatar} alt={popup.senderName} />
-          : <span>{initial}</span>}
+          ? <img
+              src={popup.senderAvatar.replace(/^http:\/\//i, "https://")}
+              alt={popup.senderName}
+              onError={e => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }}
+            />
+          : null}
+        <span style={{ display: popup.senderAvatar ? "none" : "flex" }}>{initial}</span>
       </div>
 
       <div className="msg-popup-body">
