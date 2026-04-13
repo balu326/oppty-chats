@@ -8,25 +8,11 @@ export default function AppLoader({
 }) {
   return (
     <div className="al-overlay">
-      <div className="al-bg" />
-
-      <div className="al-box">
-        {/* Logo card */}
-        <div className="al-card">
-          <div className="al-ring al-ring-1" />
-          <div className="al-ring al-ring-2" />
-          <div className="al-ring al-ring-3" />
-          <div className="al-logo-wrap">
-            <img src={companyLogo} alt="Oppty" className="al-logo" />
-          </div>
+      <div className="al-content">
+        <img src={companyLogo} alt="Oppty" className="al-logo" />
+        <div className="al-bar">
+          <div className="al-bar-fill" />
         </div>
-
-        {/* Dots */}
-        <div className="al-dots">
-          <span /><span /><span />
-        </div>
-
-        <h3 className="al-title">{title}</h3>
         <p className="al-subtitle">{subtitle}</p>
       </div>
     </div>
