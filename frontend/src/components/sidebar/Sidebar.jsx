@@ -877,11 +877,10 @@ export default function Sidebar({ isChatOpen }) {
                         />
                       </label>
 
-                      {!isSuperAdminUser && (
-                        <div className="profile-input-group">
+                      <div className="profile-input-group">
                           <span className="profile-input-label">Photo</span>
                           <div className="profile-photo-preview">
-                            <img src={draftPhoto} alt="Preview" className="profile-photo-thumb" />
+                            <img src={draftPhoto || `https://i.pravatar.cc/100?u=${profile.email}`} alt="Preview" className="profile-photo-thumb" onError={e => e.target.style.display="none"} />
                             <button
                               type="button"
                               className="popup-btn popup-btn-secondary"
@@ -898,7 +897,6 @@ export default function Sidebar({ isChatOpen }) {
                             />
                           </div>
                         </div>
-                      )}
 
                       <div className="profile-popup-actions">
                         <button
