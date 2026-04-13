@@ -1355,7 +1355,7 @@ export default function ChatPage() {
                 </svg>
                 <div>
                   <div className="chatMeetModal__title">New Meeting</div>
-                  <div className="chatMeetModal__subtitle">Google Meet · Oppty Connect</div>
+                  <div className="chatMeetModal__subtitle">Google Meet</div>
                 </div>
               </div>
               <button className="chatMeetModal__close" onClick={() => setShowMeetModal(false)}>✕</button>

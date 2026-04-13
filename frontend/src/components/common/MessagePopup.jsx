@@ -130,7 +130,6 @@ function MessagePopup({ popup, onDismiss, onClick }) {
       </div>
 
       <div className="msg-popup-body">
-        <div className="msg-popup-app">Oppty Connect</div>
         <div className="msg-popup-name">{popup.senderName}</div>
         <div className="msg-popup-text">{popup.text || "📎 Attachment"}</div>
       </div>
