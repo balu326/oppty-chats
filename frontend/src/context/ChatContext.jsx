@@ -21,6 +21,20 @@ function buildDmChatId(userA, userB) {
   return `dm_${[String(userA), String(userB)].sort().join("_")}`;
 }
 
+function _formatLastSeen(iso) {
+  if (!iso) return "last seen recently";
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "last seen just now";
+  if (mins < 60) return `last seen ${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `last seen ${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days === 1) return "last seen yesterday";
+  if (days < 7) return `last seen ${days} days ago`;
+  return `last seen ${new Date(iso).toLocaleDateString([], { month: "short", day: "numeric" })}`;
+}
+
 function getEntityId(value) {
   return value?._id || value?.id || value;
 }
@@ -96,7 +110,7 @@ async function loadEmployeesFromBackend() {
         name: emp.name,
         avatarUrl: emp.avatarUrl || `https://i.pravatar.cc/100?u=${encodeURIComponent(emp.email)}`,
         isOnline: Boolean(emp.isOnline),
-        lastSeen: emp.isOnline ? "" : "last seen recently",
+        lastSeen: emp.isOnline ? "" : emp.lastSeen ? _formatLastSeen(emp.lastSeen) : "last seen recently",
         about: "Hey there! I am using Oppty Chats.",
         contact: emp.email,
         blocked: false,
@@ -588,10 +602,13 @@ function reducer(state, action) {
     }
 
     case "SET_ONLINE": {
-      // Update online status for a chat (DM)
       const next = state.chats.map((chat) => {
         if (String(chat.employeeId) !== String(action.employeeId)) return chat;
-        return { ...chat, isOnline: action.isOnline, lastSeen: action.isOnline ? "" : "last seen recently" };
+        return {
+          ...chat,
+          isOnline: action.isOnline,
+          lastSeen: action.isOnline ? "" : _formatLastSeen(new Date().toISOString()),
+        };
       });
       return { chats: next };
     }

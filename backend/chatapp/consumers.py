@@ -100,7 +100,11 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def _set_online(self, status):
-        Employee.objects.filter(pk=self.employee.id).update(is_online=status)
+        from django.utils import timezone
+        update = {"is_online": status}
+        if not status:
+            update["last_seen"] = timezone.now()
+        Employee.objects.filter(pk=self.employee.id).update(**update)
 
     @database_sync_to_async
     def _mark_messages_read(self, chat_id, reader_id):

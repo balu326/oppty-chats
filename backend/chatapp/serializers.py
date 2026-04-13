@@ -35,10 +35,11 @@ class EmployeeSerializer(serializers.ModelSerializer):
     canCreateGroups = serializers.SerializerMethodField()
     avatarUrl = serializers.SerializerMethodField()
     isOnline = serializers.BooleanField(source="is_online", read_only=True)
+    lastSeen = serializers.DateTimeField(source="last_seen", read_only=True)
 
     class Meta:
         model = Employee
-        fields = ["_id", "email", "name", "role", "canCreateGroups", "avatarUrl", "isOnline", "group", "createdAt"]
+        fields = ["_id", "email", "name", "role", "canCreateGroups", "avatarUrl", "isOnline", "lastSeen", "group", "createdAt"]
 
     def get_canCreateGroups(self, obj):
         return obj.role in {Employee.ROLE_ADMIN, Employee.ROLE_SUPERADMIN} or obj.can_create_groups

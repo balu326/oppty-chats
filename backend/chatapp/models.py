@@ -31,6 +31,7 @@ class Employee(models.Model):
     otp_value = models.CharField(max_length=6, blank=True, default="")
     otp_expires_at = models.DateTimeField(null=True, blank=True)
     is_online = models.BooleanField(default=False)
+    last_seen = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
