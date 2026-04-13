@@ -60,21 +60,24 @@
 .login-brand-logo-wrap {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0;
 }
 
 .login-brand-logo {
-  width: 160px;
+  width: 140px;
   height: auto;
   display: block;
+  margin-right: -8px; /* compensate for PNG internal whitespace */
 }
 
 .login-brand-connect {
-  font-size: 32px;
-  font-weight: 800;
-  color: #ff6b35;
-  letter-spacing: -1px;
+  font-size: 28px;
+  font-weight: 300;
+  color: #1a1a1a;
+  letter-spacing: 4px;
   line-height: 1;
+  text-transform: uppercase;
+  font-style: italic;
 }
 
 .login-brand-tagline {
